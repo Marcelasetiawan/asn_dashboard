@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Services\PegawaiKlasifikasi;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Pegawai extends Model
 {
+    protected $table = 'pegawai';
+
     protected $primaryKey = 'nip';
     protected $keyType = 'string';
     public $incrementing = false;
@@ -59,5 +62,71 @@ class Pegawai extends Model
     public function getHasEselonAttribute(): bool
     {
         return !empty($this->eselon);
+    }
+
+    /**
+     * ================== ACCESSOR BARU (Dashboard Bangkom ASN) ==================
+     */
+
+    public function getGelarDepanAttribute(): ?string
+    {
+        return PegawaiKlasifikasi::pisahNamaGelar($this->nama)[0] ?: null;
+    }
+
+    public function getNamaBersihAttribute(): ?string
+    {
+        return PegawaiKlasifikasi::pisahNamaGelar($this->nama)[1] ?: null;
+    }
+
+    public function getGelarBelakangAttribute(): ?string
+    {
+        return PegawaiKlasifikasi::pisahNamaGelar($this->nama)[2] ?: null;
+    }
+
+    public function getJabatanItAttribute(): bool
+    {
+        return PegawaiKlasifikasi::jabatanMengandungIt($this->jabatan);
+    }
+
+    public function getKelompokAttribute(): string
+    {
+        return PegawaiKlasifikasi::kelompok($this->jabatan, $this->eselon);
+    }
+
+    public function getBidangGelarAttribute(): ?string
+    {
+        return PegawaiKlasifikasi::bidangGelar($this->gelar_belakang);
+    }
+
+    public function getGelarItAttribute(): bool
+    {
+        return $this->bidang_gelar === 'Teknologi Informasi';
+    }
+
+    public function getJabatanSesuaiGelarAttribute(): bool
+    {
+        return PegawaiKlasifikasi::jabatanSesuaiBidang($this->jabatan, $this->bidang_gelar);
+    }
+
+    public function getRekomendasiPelatihanAttribute(): bool
+    {
+        return PegawaiKlasifikasi::rekomendasiPelatihan(
+            $this->bidang_gelar,
+            $this->jabatan_sesuai_gelar,
+            $this->has_eselon
+        );
+    }
+
+    public function getSudahDiklatAttribute(): bool
+    {
+        return $this->jumlah_diklat > 0;
+    }
+
+    public function getSertifikatKurangAttribute(): int
+    {
+        return $this->riwayatDiklat()
+            ->get()
+            ->filter(fn ($d) => !PegawaiKlasifikasi::sertifikatLengkap($d->no_sertifikat))
+            ->count();
     }
 }
