@@ -11,6 +11,10 @@
     "Manajerial": "var(--series-3)"
   };
   var PILL = { "TIK": "tik", "Non TIK": "nontik", "Manajerial": "manajerial" };
+  // Kunci "nama_okupasi" tetap dipakai untuk kelompokkan pilihan Pelatihan
+  // Wajib (Dasar/Menengah/Tinggi) di tabel pelatihan_dipilih -- beda dari
+  // nama_okupasi asli (TIK) supaya tidak saling menimpa waktu disimpan.
+  var WAJIB_OKUPASI_KEY = "Pelatihan Wajib";
 
   // index diklat per nip
   var DIKLAT_BY_NIP = {};
@@ -49,6 +53,37 @@
     flags += '<span class="pill ' + PILL[p.kelompok] + '">' + esc(p.kelompok) + '</span>';
     if (p.bidang_gelar) flags += '<span class="pill ' + bidangPillClass(p.bidang_gelar) + '">Gelar ' + esc(p.bidang_gelar) + '</span>';
     if (p.rekomendasi_pelatihan) flags += '<span class="pill crit" title="Direkomendasikan penyegaran bidang ' + esc(p.bidang_gelar) + '">Direkomendasikan Penyegaran</span>';
+    var rekomendasiUmumHtml = p.rekomendasi_pelatihan_umum
+      ? '<div class="profile-section-title">Rekomendasi Pelatihan</div>' +
+        '<div class="profile-diklat-item">' +
+        '<div class="dname">' + esc(p.rekomendasi_pelatihan_umum) + '</div>' +
+        '<div class="dmeta">Jabatan saat ini (' + esc(p.jabatan || "-") + ') tidak menyinggung bidang gelar ' + esc(p.bidang_gelar) +
+        ' -- karena itu, yang WAJIB diikuti bukan pelatihan bidang gelarnya, tapi pelatihan yang sesuai dengan PEKERJAANNYA SEKARANG (lihat daftar Pelatihan Wajib di bawah). Untuk memilih, gunakan tombol "Pelatihan Wajib" di kolom Pelatihan pada tabel Rekomendasi Pelatihan.</div>' +
+        '</div>'
+      : '';
+
+    var pelatihanWajib = p.pelatihan_wajib || [];
+    var pelatihanWajibHtml = '';
+    if (pelatihanWajib.length) {
+      var urutLevel = { "Dasar": 1, "Menengah": 2, "Tinggi": 3 };
+      var terurut = pelatihanWajib.slice().sort(function (a, b) { return (a.urutan_level || urutLevel[a.level] || 99) - (b.urutan_level || urutLevel[b.level] || 99); });
+      var judulWajib = p.rekomendasi_pelatihan
+        ? 'Pelatihan Wajib Sesuai Pekerjaan Saat Ini'
+        : 'Pelatihan Wajib';
+      var dipilihWajibNama = (p.pelatihan_dipilih || [])
+        .filter(function (d) { return d.nama_okupasi === WAJIB_OKUPASI_KEY; })
+        .map(function (d) { return d.nama_pelatihan; });
+      pelatihanWajibHtml = '<div class="profile-section-title">' + judulWajib + ' (' + (p.pelatihan_wajib_terpenuhi || 0) + '/' + (p.pelatihan_wajib_total || 0) + ' terpenuhi) &mdash; kategori: ' + esc(p.jabatan || "-") + '</div>' +
+        '<div class="sub">Untuk memilih pelatihan yang mau diikuti, gunakan tombol "Pelatihan Wajib" di kolom Pelatihan pada tabel Rekomendasi Pelatihan.</div>' +
+        terurut.map(function (w) {
+          var status = w.sudah_diikuti ? '<span class="pill good">Sudah</span>' : '<span class="pill warn">Belum</span>';
+          var dipilihPill = dipilihWajibNama.indexOf(w.nama_pelatihan) >= 0 ? ' <span class="pill terpilih-info">Dipilih</span>' : '';
+          return '<div class="profile-diklat-item">' +
+            '<div class="dname"><span class="pill" style="margin-right:6px;">' + esc(w.level) + '</span>' + esc(w.nama_pelatihan) + '</div>' +
+            '<div class="dmeta">' + status + dipilihPill + '</div>' +
+            '</div>';
+        }).join('');
+    }
     flags += p.sudah_diklat ? '<span class="pill good">' + p.jumlah_diklat + ' Diklat Diikuti</span>' : '<span class="pill warn">Belum Pernah Diklat</span>';
 
     var kv = [
@@ -59,6 +94,8 @@
       ["Gelar Depan", p.gelar_depan || "-"], ["Gelar Belakang", p.gelar_belakang || "-"],
       ["Total JP Diklat", fmtInt(p.total_jp) + " JP"], ["Sertifikat Belum Lengkap", p.sertifikat_kurang > 0 ? p.sertifikat_kurang + " riwayat" : "Tidak ada"]
     ];
+    if (p.jabatan_fungsional_spesifik) kv.push(["Jabatan Fungsional Spesifik", p.jabatan_fungsional_spesifik]);
+    if (p.unor_detail) kv.push(["Unit Kerja Detail", p.unor_detail]);
     var kvHtml = kv.map(function (row) {
       return '<div class="kv-item"><div class="kv-label">' + esc(row[0]) + '</div><div class="kv-val">' + esc(row[1]) + '</div></div>';
     }).join("");
@@ -89,6 +126,8 @@
       '</div>' +
       '<div class="profile-flags">' + flags + '</div>' +
       '<div class="profile-kv">' + kvHtml + '</div>' +
+      rekomendasiUmumHtml +
+      pelatihanWajibHtml +
       '<div class="profile-section-title">Riwayat Pelatihan Diikuti (' + riwayat.length + ')</div>' +
       riwayatHtml;
 
@@ -131,10 +170,14 @@
   function openSidebar() {
     sidebarEl.classList.add("open");
     sidebarBackdrop.classList.add("show");
+    hamburgerBtn.classList.add("open");
+    hamburgerBtn.setAttribute("aria-label", "Tutup menu");
   }
   function closeSidebar() {
     sidebarEl.classList.remove("open");
     sidebarBackdrop.classList.remove("show");
+    hamburgerBtn.classList.remove("open");
+    hamburgerBtn.setAttribute("aria-label", "Buka menu");
   }
   if (hamburgerBtn && sidebarEl && sidebarBackdrop) {
     hamburgerBtn.addEventListener("click", function () {
@@ -149,14 +192,14 @@
   // -------------------------------------------------------------------
   var pageTitles = {
     ringkasan: ["Ringkasan", "Gambaran umum kondisi SDM & pengembangan kompetensi"],
-    profil: ["Profil Pegawai", "Data ASN per kelompok — dapat difilter & dicari"],
+    profil: ["Profil Pegawai", "Data ASN per kelompok"],
     sertifikat: ["Upload Sertifikat", "Riwayat diklat yang sertifikatnya belum lengkap"],
     bersertifikat: ["Sudah Bersertifikat", "ASN yang sudah ikut pelatihan dan punya sertifikat lengkap"],
     riwayat: ["Riwayat Kursus", "Seluruh riwayat pelatihan yang tercatat"],
     caridiklat: ["Cari Diklat", "Cari program diklat & lihat daftar pesertanya"],
     sudah: ["Sudah Pelatihan", "ASN yang sudah pernah mengikuti diklat"],
     belum: ["Belum Pelatihan", "ASN yang belum pernah mengikuti diklat"],
-    rekomendasi: ["Rekomendasi Pelatihan", "Gelar bidang tertentu namun jabatan tidak sesuai"],
+    rekomendasi: ["Rekomendasi Pelatihan", "Okupasi TIK terdekat untuk jabatan seluruh pegawai"],
     opd: ["ASN per OPD", "Rekapitulasi per organisasi perangkat daerah"],
     golongan: ["ASN per Golongan", "Rekapitulasi per golongan ruang"]
   };
@@ -467,9 +510,6 @@
       '<div class="tile"><div class="label">Belum Lengkap</div><div class="value">' + fmtInt(kurang) + '</div><div class="delta warn">dari ' + fmtInt(total) + ' riwayat diklat</div></div>' +
       '<div class="tile"><div class="label">Sudah Lengkap</div><div class="value">' + fmtInt(total - kurang) + '</div><div class="delta">' + Math.round((total - kurang) / total * 100) + '% dari total</div></div>' +
       '<div class="tile"><div class="label">Total Riwayat Diklat</div><div class="value">' + fmtInt(total) + '</div><div class="delta">seluruh catatan</div></div>';
-    var badge = document.getElementById("badge-sertifikat");
-    badge.textContent = kurang;
-    badge.style.display = kurang ? "inline-block" : "none";
   }
   function renderSertifikatChart() {
     var byKelompok = { "TIK": 0, "Non TIK": 0, "Manajerial": 0 };
@@ -668,8 +708,6 @@
       '<div class="tile"><div class="label">ASN Sudah Bersertifikat</div><div class="value">' + fmtInt(rows.length) + '</div><div class="delta">dari ' + fmtInt(PEGAWAI.length) + ' total ASN</div></div>' +
       '<div class="tile"><div class="label">Sudah Diklat, Sertifikat Belum Lengkap</div><div class="value">' + fmtInt(PEGAWAI.filter(function (p) { return p.sudah_diklat; }).length - rows.length) + '</div><div class="delta warn">perlu tindak lanjut unggah sertifikat</div></div>' +
       '<div class="tile"><div class="label">Belum Pernah Diklat</div><div class="value">' + fmtInt(PEGAWAI.filter(function (p) { return !p.sudah_diklat; }).length) + '</div><div class="delta">lihat menu Belum Pelatihan</div></div>';
-    var badge = document.getElementById("badge-bersertifikat");
-    badge.textContent = rows.length;
   }
   function renderBersertifikatChart() {
     var rows = bersertifikatRows();
@@ -740,22 +778,40 @@
     if (!rows.length) {
       tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><div class="big">&#128269;</div>Tidak ada riwayat yang cocok.</div></td></tr>';
     } else {
-      tbody.innerHTML = rows.slice(0, 500).map(function (r, pos) {
-        var d = r.d, idx = r.idx;
-        var p = PEGAWAI_BY_NIP[d.nip] || {};
-        var lengkap = d.sertifikat_lengkap || uploadedOverrides[idx];
-        return '<tr>' +
-          '<td>' + (pos + 1) + '</td>' +
-          '<td class="strong">' + nameLink(d.nip, p.nama || d.nip) + '</td>' +
-          '<td>' + esc(d.jenis_sertifikasi || "-") + '</td>' +
-          '<td>' + esc(d.nama_diklat) + '</td>' +
-          '<td>' + esc(d.penyelenggara || "-") + '</td>' +
-          '<td>' + esc(d.pelaksanaan || "-") + '</td>' +
-          '<td>' + esc(d.jp || "-") + '</td>' +
-          '<td>' + (lengkap ? '<span class="pill good">Lengkap</span>' : '<span class="pill warn">Belum</span>') + '</td>' +
-          '<td>' + certLinkHtml(idx) + '</td>' +
-          '</tr>';
-      }).join("");
+      // Nama pegawai cuma ditulis SEKALI per pegawai (pakai rowspan), bukan
+      // diulang di tiap baris riwayat diklatnya -- baris-baris riwayat DIKLAT
+      // (kolom nama pegawai) datanya sudah terurut per nip dari backend, jadi
+      // baris-baris milik 1 pegawai yang sama pasti berurutan/tidak diselingi.
+      var limited = rows.slice(0, 500);
+      var html = "";
+      var no = 0;
+      var i = 0;
+      while (i < limited.length) {
+        var nip = limited[i].d.nip;
+        var group = [];
+        while (i < limited.length && limited[i].d.nip === nip) {
+          group.push(limited[i]);
+          i++;
+        }
+        var p = PEGAWAI_BY_NIP[nip] || {};
+        html += group.map(function (r, gi) {
+          var d = r.d, idx = r.idx;
+          var lengkap = d.sertifikat_lengkap || uploadedOverrides[idx];
+          no++;
+          return '<tr>' +
+            '<td>' + no + '</td>' +
+            (gi === 0 ? '<td class="strong" rowspan="' + group.length + '">' + nameLink(nip, p.nama || nip) + '</td>' : '') +
+            '<td>' + esc(d.jenis_sertifikasi || "-") + '</td>' +
+            '<td>' + esc(d.nama_diklat) + '</td>' +
+            '<td>' + esc(d.penyelenggara || "-") + '</td>' +
+            '<td>' + esc(d.pelaksanaan || "-") + '</td>' +
+            '<td>' + esc(d.jp || "-") + '</td>' +
+            '<td>' + (lengkap ? '<span class="pill good">Lengkap</span>' : '<span class="pill warn">Belum</span>') + '</td>' +
+            '<td>' + certLinkHtml(idx) + '</td>' +
+            '</tr>';
+        }).join("");
+      }
+      tbody.innerHTML = html;
     }
     document.getElementById("riwayat-count").textContent =
       "Menampilkan " + Math.min(rows.length, 500) + " dari " + rows.length + " riwayat diklat";
@@ -981,8 +1037,6 @@
       '<div class="tile"><div class="label">ASN Sudah Pelatihan</div><div class="value">' + fmtInt(rows.length) + '</div><div class="delta">dari ' + fmtInt(PEGAWAI.length) + ' total ASN</div></div>' +
       '<div class="tile"><div class="label">Sertifikat Sudah Lengkap Semua</div><div class="value">' + fmtInt(lengkapSemua) + '</div><div class="delta good">tidak ada tunggakan unggah</div></div>' +
       '<div class="tile"><div class="label">Masih Ada Sertifikat Kurang</div><div class="value">' + fmtInt(rows.length - lengkapSemua) + '</div><div class="delta warn">lihat menu Upload Sertifikat</div></div>';
-    var badge = document.getElementById("badge-sudah");
-    badge.textContent = rows.length;
   }
   function renderSudahChart() {
     var byKelompok = { "TIK": 0, "Non TIK": 0, "Manajerial": 0 };
@@ -1089,9 +1143,6 @@
     renderBelumTiles();
     renderBelumChart();
     renderBelumTable();
-    var badge = document.getElementById("badge-belum");
-    var n = PEGAWAI.filter(function (p) { return !p.sudah_diklat; }).length;
-    badge.textContent = n;
   }
 
   // =====================================================================
@@ -1107,53 +1158,282 @@
 
   function renderRekomendasiTable() {
     var q = (document.getElementById("rekomendasi-search").value || "").toLowerCase().trim();
-    var bidang = document.getElementById("rekomendasi-filter-bidang").value;
-    var rows = PEGAWAI.filter(function (p) { return p.rekomendasi_pelatihan; });
-    if (bidang) rows = rows.filter(function (p) { return p.bidang_gelar === bidang; });
+    var kategori = document.getElementById("rekomendasi-filter-bidang").value;
+    // SEMUA pegawai ditampilkan -- bukan cuma yang rekomendasi_pelatihan
+    // (gelar tidak sesuai jabatan). Kategori "Sudah TIK" (p.jabatan_it true)
+    // vs "Rekomendasi ke TIK" (jabatan bukan TIK, dicarikan okupasi TIK
+    // terdekat) cuma soal LABEL & framing -- datanya sama-sama diambil dari
+    // p.rekomendasi_pelatihan_opsi yang sudah dihitung untuk semua pegawai.
+    var rows = PEGAWAI.slice();
+    if (kategori === "tik") rows = rows.filter(function (p) { return p.jabatan_it; });
+    else if (kategori === "non-tik") rows = rows.filter(function (p) { return !p.jabatan_it; });
     if (q) rows = rows.filter(function (p) {
       return (p.nama || "").toLowerCase().indexOf(q) >= 0 ||
         (p.nip || "").toLowerCase().indexOf(q) >= 0 ||
-        (p.jabatan || "").toLowerCase().indexOf(q) >= 0;
+        (p.jabatan || "").toLowerCase().indexOf(q) >= 0 ||
+        (p.rekomendasi_pelatihan_opsi && (p.rekomendasi_pelatihan_opsi.nama_okupasi || "").toLowerCase().indexOf(q) >= 0);
     });
     var tbody = document.querySelector("#table-rekomendasi tbody");
     if (!rows.length) {
-      tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="big">&#128269;</div>Tidak ada yang cocok.</div></td></tr>';
+      tbody.innerHTML = '<tr><td colspan="12"><div class="empty-state"><div class="big">&#128269;</div>Tidak ada yang cocok.</div></td></tr>';
     } else {
       tbody.innerHTML = rows.map(function (p, i) {
+        var opsi = p.rekomendasi_pelatihan_opsi;
+        var dipilih = p.pelatihan_dipilih || [];
+        var kategoriCell = p.jabatan_it
+          ? '<span class="pill good">Sudah TIK</span>'
+          : '<span class="pill" style="background:var(--surface-2);color:var(--text-secondary);">Rekomendasi ke TIK</span>';
+        var areaCell, kodeCell, namaOkupasiCell, pelatihanCell;
+        if (p.jabatan_it && opsi) {
+          // Sudah TIK: okupasi ini identitas kerjanya sekarang -- tampilkan
+          // Area Fungsi / Kode Ref / Nama Okupasi apa adanya.
+          areaCell = esc(opsi.area || "-");
+          kodeCell = esc(opsi.kode || "-");
+          namaOkupasiCell = esc(opsi.nama_okupasi);
+        } else if (p.jabatan_it && !opsi) {
+          areaCell = kodeCell = namaOkupasiCell = '<span class="muted-cell">-</span>';
+        } else {
+          // Rekomendasi ke TIK (jabatan bukan TIK): TIDAK dipetakan ke
+          // satu Area Fungsi/Kode Ref/Nama Okupasi tertentu -- okupasi
+          // terdekat cuma dipakai di belakang layar untuk menyusun daftar
+          // pelatihan rekomendasi, bukan diklaim sebagai okupasi pegawai.
+          areaCell = kodeCell = namaOkupasiCell = '<span class="muted-cell" title="Jabatan ini di luar bidang TIK, jadi tidak dipetakan ke okupasi tertentu -- tetap diberi rekomendasi pelatihan TIK terdekat di kolom Pelatihan">-</span>';
+        }
+        var riwayatPegawai = (DIKLAT_BY_NIP[p.nip] || []);
+        var riwayatCell;
+        if (riwayatPegawai.length) {
+          var contohNama = riwayatPegawai.slice(0, 2).map(function (d) { return esc(d.nama_diklat); }).join(', ');
+          var sisa = riwayatPegawai.length > 2 ? ', +' + (riwayatPegawai.length - 2) + ' lainnya' : '';
+          riwayatCell = '<span class="clickable-name" data-open-profile="' + esc(p.nip) + '" title="' +
+            'Klik untuk lihat daftar lengkap riwayat diklat/sertifikasi (termasuk dari sertifikasi_asn)">' +
+            '<span class="pill good">' + riwayatPegawai.length + ' riwayat</span><br>' +
+            '<span class="muted-cell" style="font-size:12px;">' + contohNama + sisa + '</span>' +
+            '</span>';
+        } else {
+          riwayatCell = '<span class="pill warn">Belum ada</span>';
+        }
+        var wajibTotal = p.pelatihan_wajib_total || 0;
+        var wajibTerpenuhi = p.pelatihan_wajib_terpenuhi || 0;
+        var wajibCell;
+        if (wajibTotal > 0) {
+          var wajibKelas = wajibTerpenuhi >= wajibTotal ? "good" : (wajibTerpenuhi > 0 ? "warn" : "crit");
+          wajibCell = '<span class="clickable-name" data-open-profile="' + esc(p.nip) + '" title="Klik untuk lihat rincian Pelatihan Wajib (Dasar/Menengah/Tinggi) -- untuk MEMILIH pelatihan, pakai tombol di kolom Pelatihan">' +
+            '<span class="pill ' + wajibKelas + '">' + wajibTerpenuhi + '/' + wajibTotal + ' terpenuhi</span>' +
+            '</span>';
+        } else {
+          wajibCell = '<span class="muted-cell">-</span>';
+        }
+        // Kolom "Pelatihan" adalah SATU-SATUNYA tempat untuk memilih/menyimpan
+        // pelatihan -- 1 tombol yang buka 1 modal berisi SEMUA yang relevan
+        // buat pegawai ini (rekomendasi TIK dari okupasi_tugas, dan/atau
+        // Pelatihan Wajib Dasar/Menengah/Tinggi) -- lihat openPelatihanModal.
+        // Kolom "Pelatihan Wajib" di tabel cuma menampilkan ringkasan status,
+        // tidak bisa dipilih dari sana.
+        var dipilihTik = opsi ? dipilih.filter(function (d) { return d.nama_okupasi === opsi.nama_okupasi; }) : [];
+        var dipilihWajib = dipilih.filter(function (d) { return d.nama_okupasi === WAJIB_OKUPASI_KEY; });
+        var punyaOpsiTik = !!(opsi && opsi.pilihan && opsi.pilihan.length);
+        var punyaOpsiWajib = wajibTotal > 0;
+        if (punyaOpsiTik || punyaOpsiWajib) {
+          // Tombol TETAP selalu ada & bisa diklik kapan saja -- baik untuk
+          // pilih pertama kali, MAUPUN untuk nambah/ubah pilihan yang sudah
+          // ada (dibuka lagi, checklist yang sudah tersimpan otomatis
+          // tercentang, tinggal centang/hapus centang lalu simpan ulang).
+          // Supaya jelas tombol ini juga berfungsi sebagai EDIT, labelnya
+          // berubah jadi "Edit Pilihan" begitu sudah ada yang tersimpan.
+          var totalDipilih = dipilihTik.length + dipilihWajib.length;
+          var sudahPilih = totalDipilih > 0;
+          var labelTombol = sudahPilih ? 'Edit Pilihan' : 'Pilih Pelatihan';
+          var keterangan = sudahPilih
+            ? '<span class="pill terpilih-info">' + totalDipilih + ' dipilih</span>'
+            : '';
+          pelatihanCell = '<div class="pelatihan-cell">' +
+            '<button class="btn small primary" data-pilih-pelatihan="' + esc(p.nip) + '" title="' + (sudahPilih ? 'Tambah, kurangi, atau ubah pelatihan yang sudah dipilih' : 'Pilih pelatihan') + '">' + esc(labelTombol) + '</button>' +
+            keterangan +
+            '</div>';
+        } else {
+          pelatihanCell = '-';
+        }
         return '<tr>' +
           '<td>' + (i + 1) + '</td>' +
           '<td>' + esc(p.nip) + '</td>' +
           '<td class="strong">' + nameLink(p.nip, p.nama) + '</td>' +
-          '<td>' + esc(p.gelar_belakang || "-") + '</td>' +
-          '<td><span class="pill ' + bidangPillClass(p.bidang_gelar) + '">' + esc(p.bidang_gelar || "-") + '</span></td>' +
           '<td>' + esc(p.jabatan || "-") + '</td>' +
           '<td>' + esc(p.satuan_kerja || "-") + '</td>' +
-          '<td><span class="pill crit" title="Penyegaran bidang ' + esc(p.bidang_gelar || "-") + '">Penyegaran Kompetensi</span></td>' +
+          '<td>' + kategoriCell + '</td>' +
+          '<td>' + areaCell + '</td>' +
+          '<td>' + kodeCell + '</td>' +
+          '<td>' + namaOkupasiCell + '</td>' +
+          '<td>' + riwayatCell + '</td>' +
+          '<td>' + wajibCell + '</td>' +
+          '<td>' + pelatihanCell + '</td>' +
           '</tr>';
       }).join("");
+      tbody.querySelectorAll("[data-pilih-pelatihan]").forEach(function (btn) {
+        btn.addEventListener("click", function () { openPelatihanModal(btn.getAttribute("data-pilih-pelatihan")); });
+      });
     }
-    document.getElementById("rekomendasi-count").textContent = rows.length + " pegawai direkomendasikan mengikuti pelatihan penyegaran kompetensi sesuai bidang gelarnya.";
+    document.getElementById("rekomendasi-count").textContent = rows.length + " dari " + PEGAWAI.length + " pegawai ditampilkan.";
   }
-  function renderRekomendasiChart() {
-    var byBidang = {};
-    PEGAWAI.filter(function (p) { return p.rekomendasi_pelatihan; }).forEach(function (p) {
-      var k = p.bidang_gelar || "Lainnya";
-      byBidang[k] = (byBidang[k] || 0) + 1;
+
+  // =====================================================================
+  // Modal "Pilih Pelatihan" — checklist beberapa pilihan pelatihan per
+  // okupasi (dari Peta Okupasi TIK), disimpan ke database lewat
+  // POST /pelatihan-pilihan.
+  // =====================================================================
+  function csrfToken() {
+    var m = document.querySelector('meta[name="csrf-token"]');
+    return m ? m.getAttribute("content") : "";
+  }
+  // Simpan pilihan pelatihan (TIK maupun Pelatihan Wajib, dibedakan lewat
+  // namaOkupasi) ke POST /pelatihan-pilihan -- dipakai bersama supaya tidak
+  // dobel-tulis logika fetch-nya.
+  function simpanPelatihanDipilih(nip, namaOkupasi, pelatihan, onSuccess) {
+    fetch("/pelatihan-pilihan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": csrfToken(), "Accept": "application/json" },
+      body: JSON.stringify({ nip: nip, nama_okupasi: namaOkupasi, pelatihan: pelatihan })
+    }).then(function (r) {
+      if (!r.ok) throw new Error("gagal simpan");
+      return r.json();
+    }).then(onSuccess).catch(function () {
+      toast("Gagal menyimpan pilihan pelatihan. Coba lagi.");
     });
-    var rows = Object.keys(byBidang).map(function (k) {
-      return { label: k, value: byBidang[k], color: "var(--status-critical)" };
-    }).sort(function (a, b) { return b.value - a.value; });
+  }
+  // Satu modal untuk SEMUA pilihan pelatihan pegawai: seksi "Rekomendasi
+  // TIK" (dari Peta Okupasi, kalau ada) dan seksi "Pelatihan Wajib"
+  // (Dasar/Menengah/Tinggi, kalau ada) ditampilkan sekaligus -- isinya beda
+  // sumber (okupasi_tugas vs pelatihan_wajib), tapi disimpan lewat 1 tombol
+  // "Simpan Pilihan" yang sama (dikirim sebagai 2 request terpisah ke
+  // POST /pelatihan-pilihan, dibedakan lewat nama_okupasi).
+  function openPelatihanModal(nip) {
+    var p = PEGAWAI_BY_NIP[nip];
+    if (!p) return;
+    var opsi = p.rekomendasi_pelatihan_opsi;
+    var punyaTik = !!(opsi && opsi.pilihan && opsi.pilihan.length);
+    var urutLevel = { "Dasar": 1, "Menengah": 2, "Tinggi": 3 };
+    var wajibList = (p.pelatihan_wajib || []).slice().sort(function (a, b) {
+      return (a.urutan_level || urutLevel[a.level] || 99) - (b.urutan_level || urutLevel[b.level] || 99);
+    });
+    var punyaWajib = wajibList.length > 0;
+    if (!punyaTik && !punyaWajib) return;
+
+    var dipilihTikNama = (p.pelatihan_dipilih || [])
+      .filter(function (d) { return opsi && d.nama_okupasi === opsi.nama_okupasi; })
+      .map(function (d) { return d.nama_pelatihan; });
+    var dipilihWajibNama = (p.pelatihan_dipilih || [])
+      .filter(function (d) { return d.nama_okupasi === WAJIB_OKUPASI_KEY; })
+      .map(function (d) { return d.nama_pelatihan; });
+    var sudahAdaPilihan = dipilihTikNama.length > 0 || dipilihWajibNama.length > 0;
+    var body = document.getElementById("pelatihan-modal-body");
+    var judulModal = sudahAdaPilihan ? 'Edit Pilihan Pelatihan' : 'Pilih Pelatihan';
+
+    var tikHtml = '';
+    if (punyaTik) {
+      tikHtml = '<div class="profile-section-title">Rekomendasi TIK: <b>' + esc(opsi.nama_okupasi) + '</b>' + (opsi.kode ? ' (' + esc(opsi.kode) + ')' : '') +
+        '</div>' +
+        '<div class="pelatihan-checklist" id="pelatihan-checklist-tik">' +
+        opsi.pilihan.map(function (t, i) {
+          var checked = dipilihTikNama.indexOf(t.nama) >= 0 ? "checked" : "";
+          return '<label class="pelatihan-check-row">' +
+            '<input type="checkbox" value="' + i + '" ' + checked + '>' +
+            '<span><span class="pelatihan-nama">' + esc(t.nama) + '</span>' +
+            (t.kode_standar ? '<span class="pelatihan-kode">' + esc(t.kode_standar) + '</span>' : '') +
+            (t.kemungkinan_sudah_diikuti ? '<span class="pelatihan-riwayat-flag" title="Kemungkinan sudah pernah diikuti (dibandingkan dari riwayat diklat), silakan cek lagi manual">⚠ Mirip riwayat: ' + esc(t.kemungkinan_sudah_diikuti) + '</span>' : '') +
+            '</span></label>';
+        }).join("") +
+        '</div>';
+    }
+
+    var wajibHtml = '';
+    if (punyaWajib) {
+      wajibHtml = '<div class="profile-section-title">Pelatihan Wajib (Dasar/Menengah/Tinggi) — kategori: ' + esc(p.jabatan || "-") + '</div>' +
+        '<div class="pelatihan-checklist" id="pelatihan-checklist-wajib">' +
+        wajibList.map(function (w, i) {
+          var checked = dipilihWajibNama.indexOf(w.nama_pelatihan) >= 0 ? "checked" : "";
+          var status = w.sudah_diikuti ? '<span class="pill good">Sudah</span>' : '<span class="pill warn">Belum</span>';
+          return '<label class="pelatihan-check-row">' +
+            '<input type="checkbox" value="' + i + '" ' + checked + '>' +
+            '<span><span class="pill" style="margin-right:6px;">' + esc(w.level) + '</span>' +
+            '<span class="pelatihan-nama">' + esc(w.nama_pelatihan) + '</span> ' + status + '</span>' +
+            '</label>';
+        }).join("") +
+        '</div>';
+    }
+
+    body.innerHTML =
+      '<h3>' + judulModal + ' — ' + esc(p.nama) + '</h3>' +
+      (sudahAdaPilihan ? '<div class="sub">Centang/hapus centang sesuai kebutuhan, lalu klik "Simpan Pilihan".</div>' : '') +
+      tikHtml + wajibHtml +
+      '<div class="modal-actions">' +
+      '<button class="btn" id="pelatihan-cancel">Batal</button>' +
+      '<button class="btn primary" id="pelatihan-submit">Simpan Pilihan</button>' +
+      '</div>';
+
+    document.getElementById("pelatihan-cancel").addEventListener("click", closePelatihanModal);
+    document.getElementById("pelatihan-submit").addEventListener("click", function () {
+      var groups = [];
+      if (punyaTik) {
+        var checkedTik = Array.prototype.slice.call(body.querySelectorAll('#pelatihan-checklist-tik input[type="checkbox"]:checked'));
+        groups.push({
+          namaOkupasi: opsi.nama_okupasi,
+          pelatihan: checkedTik.map(function (c) { return opsi.pilihan[Number(c.value)]; })
+        });
+      }
+      if (punyaWajib) {
+        var checkedWajib = Array.prototype.slice.call(body.querySelectorAll('#pelatihan-checklist-wajib input[type="checkbox"]:checked'));
+        groups.push({
+          namaOkupasi: WAJIB_OKUPASI_KEY,
+          pelatihan: checkedWajib.map(function (c) { return wajibList[Number(c.value)]; }).map(function (w) {
+            return { nama: w.nama_pelatihan, kode_standar: null };
+          })
+        });
+      }
+      var totalTersimpan = groups.reduce(function (sum, g) { return sum + g.pelatihan.length; }, 0);
+      // Kirim tiap grup sebagai request terpisah ke endpoint yang sama
+      // (endpoint-nya menyimpan per nama_okupasi), lalu baru gabungkan cache
+      // lokal & tutup modal setelah SEMUA grup selesai tersimpan.
+      var i = 0;
+      function simpanBerikutnya() {
+        if (i >= groups.length) {
+          p.pelatihan_dipilih = (p.pelatihan_dipilih || []).filter(function (d) {
+            return groups.every(function (g) { return d.nama_okupasi !== g.namaOkupasi; });
+          }).concat(groups.reduce(function (acc, g) {
+            return acc.concat(g.pelatihan.map(function (t) {
+              return { nama_okupasi: g.namaOkupasi, nama_pelatihan: t.nama, kode_standar: t.kode_standar };
+            }));
+          }, []));
+          toast(totalTersimpan + " pilihan pelatihan tersimpan untuk " + p.nama + ".");
+          closePelatihanModal();
+          renderRekomendasiTable();
+          return;
+        }
+        var g = groups[i++];
+        simpanPelatihanDipilih(nip, g.namaOkupasi, g.pelatihan, simpanBerikutnya);
+      }
+      simpanBerikutnya();
+    });
+    document.getElementById("pelatihan-modal").classList.add("open");
+  }
+  function closePelatihanModal() { document.getElementById("pelatihan-modal").classList.remove("open"); }
+  document.getElementById("pelatihan-modal").addEventListener("click", function (e) {
+    if (e.target === this) closePelatihanModal();
+  });
+  function renderRekomendasiChart() {
+    var jumlahTik = 0, jumlahNonTik = 0;
+    PEGAWAI.forEach(function (p) {
+      if (p.jabatan_it) jumlahTik++; else jumlahNonTik++;
+    });
+    var rows = [
+      { label: "Sudah TIK", value: jumlahTik, color: "var(--status-good, #16a34a)" },
+      { label: "Rekomendasi ke TIK", value: jumlahNonTik, color: "var(--status-critical)" }
+    ];
     renderHBars(document.getElementById("chart-rekomendasi-bidang"), rows);
   }
   function initRekomendasiPage() {
-    var bidangList = Array.from(new Set(PEGAWAI.filter(function (p) { return p.rekomendasi_pelatihan; }).map(function (p) { return p.bidang_gelar; }))).sort();
-    fillSelectOptions(document.getElementById("rekomendasi-filter-bidang"), bidangList, "Semua Bidang");
     document.getElementById("rekomendasi-search").addEventListener("input", renderRekomendasiTable);
     document.getElementById("rekomendasi-filter-bidang").addEventListener("change", renderRekomendasiTable);
     renderRekomendasiChart();
     renderRekomendasiTable();
-    var badge = document.getElementById("badge-rekomendasi");
-    badge.textContent = PEGAWAI.filter(function (p) { return p.rekomendasi_pelatihan; }).length;
   }
 
   // =====================================================================
@@ -1285,8 +1565,9 @@
     var byKey = {};
     rows.forEach(function (r) { byKey[r.opd] = r; });
     var tbody = document.querySelector("#table-opd tbody");
-    tbody.innerHTML = rows.map(function (r) {
+    tbody.innerHTML = rows.map(function (r, i) {
       return '<tr class="group-row" data-group-key="' + esc(r.opd) + '">' +
+        '<td>' + (i + 1) + '</td>' +
         '<td class="strong"><span class="chev">&#9656;</span>' + esc(r.opd) + '</td>' +
         '<td>' + fmtInt(r.total) + '</td>' +
         '<td><span class="pill tik" data-quick-filter="TIK">' + r.TIK + '</span></td>' +
@@ -1295,7 +1576,7 @@
         '<td>' + (r.belum > 0 ? '<span class="pill warn" data-quick-filter="belum">' + r.belum + '</span>' : '<span class="pill good" data-quick-filter="belum">0</span>') + '</td>' +
         '</tr>';
     }).join("");
-    attachGroupExpand(tbody, byKey, 6);
+    attachGroupExpand(tbody, byKey, 7);
     document.getElementById("opd-count").textContent = rows.length + " OPD/satuan kerja terdata. Klik baris atau salah satu angka (TIK/Non TIK/Manajerial/Belum Diklat) untuk melihat daftar namanya.";
   }
   function renderOpdChart() {
@@ -1334,9 +1615,10 @@
       return { label: r.gol, value: r.total, color: "var(--series-4)" };
     }));
     var tbody = document.querySelector("#table-golongan tbody");
-    tbody.innerHTML = rows.map(function (r) {
+    tbody.innerHTML = rows.map(function (r, i) {
       var avgJp = r.total ? Math.round(r.jpSum / r.total) : 0;
       return '<tr class="group-row" data-group-key="' + esc(r.gol) + '">' +
+        '<td>' + (i + 1) + '</td>' +
         '<td class="strong"><span class="chev">&#9656;</span>' + esc(r.gol) + '</td>' +
         '<td>' + fmtInt(r.total) + '</td>' +
         '<td><span class="pill tik" data-quick-filter="TIK">' + r.TIK + '</span></td>' +
@@ -1345,7 +1627,7 @@
         '<td>' + avgJp + ' JP</td>' +
         '</tr>';
     }).join("");
-    attachGroupExpand(tbody, byKey, 6);
+    attachGroupExpand(tbody, byKey, 7);
   }
 
   // =====================================================================

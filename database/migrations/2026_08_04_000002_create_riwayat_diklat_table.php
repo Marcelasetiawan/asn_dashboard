@@ -17,17 +17,16 @@ return new class extends Migration
         Schema::create('riwayat_diklat', function (Blueprint $table) {
             $table->id();
             $table->string('nip', 30);                          // relasi ke pegawai.nip
-            $table->string('jenis_sertifikasi', 50)->nullable(); // "Jenis Sertifikasi"
-            $table->string('nama_diklat', 300);                  // "Nama" (nama diklat)
-            $table->string('no_sertifikat', 100)->nullable();    // "No. Sertifikat"
-            $table->string('penyelenggara', 200)->nullable();    // "Penyelenggara"
+            $table->string('jenis_sertifikasi', 100)->nullable(); // "Jenis Sertifikasi"
+            $table->text('nama_diklat');                         // "Nama" (nama diklat)
+            $table->text('no_sertifikat')->nullable();           // "No. Sertifikat"
+            $table->text('penyelenggara')->nullable();           // "Penyelenggara"
             $table->string('pelaksanaan', 50)->nullable();       // "Pelaksanaan"
             $table->integer('jp')->nullable();                   // "JP"
             $table->timestamps();
 
             $table->foreign('nip')->references('nip')->on('pegawai')->onDelete('cascade');
             $table->index('nip');
-            $table->index('nama_diklat');
         });
     }
 

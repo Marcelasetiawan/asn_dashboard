@@ -17,7 +17,10 @@ class Pegawai extends Model
     protected $fillable = [
         'nip', 'nama', 'jenis_kelamin', 'status', 'golongan_ruang', 'tmt_pangkat',
         'eselon', 'jabatan', 'tmt_jabatan', 'agama', 'satuan_kerja',
-        'tmt_pensiun', 'pendidikan', 'tahun_lulus',
+        'tmt_pensiun', 'pendidikan', 'tahun_lulus', 'umur', 'kelompok_opd',
+        'opd_induk', 'unor_nama', 'instansi_kerja', 'alamat', 'email',
+        'kategori_asn', 'level_1', 'level_2', 'level_3',
+        'jabatan_fungsional_spesifik', 'kelas_jabatan_fungsional', 'jabatan_umum_label', 'unor_detail',
     ];
 
     /**
@@ -85,12 +88,18 @@ class Pegawai extends Model
 
     public function getJabatanItAttribute(): bool
     {
-        return PegawaiKlasifikasi::jabatanMengandungIt($this->jabatan);
+        return $this->kategori_asn === 'ASN TIK'
+            || PegawaiKlasifikasi::jabatanMengandungIt($this->jabatan);
     }
 
     public function getKelompokAttribute(): string
     {
-        return PegawaiKlasifikasi::kelompok($this->jabatan, $this->eselon);
+        return match ($this->kategori_asn) {
+            'ASN TIK' => 'TIK',
+            'ASN MANAJERIAR' => 'Manajerial',
+            'ASN NON TIK' => 'Non TIK',
+            default => PegawaiKlasifikasi::kelompok($this->jabatan, $this->eselon),
+        };
     }
 
     public function getBidangGelarAttribute(): ?string

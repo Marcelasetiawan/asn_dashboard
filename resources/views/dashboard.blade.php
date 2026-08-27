@@ -3,13 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="csrf-token" content="{{ csrf_token() }}">
 <title>Dashboard Bangkom ASN — Kabupaten Banyuwangi</title>
 <link rel="stylesheet" href="{{ asset('css/dashboard.css') }}">
 </head>
 <body>
 
 <button class="hamburger-btn" id="hamburgerBtn" aria-label="Buka menu">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+  <svg class="ic-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+  <svg class="ic-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 5 8 12 15 19"/></svg>
 </button>
 <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
@@ -17,7 +19,7 @@
 
   <aside class="sidebar" id="sidebar">
     <div class="brand">
-      <div class="brand-mark">BW</div>
+      <div class="brand-mark"><img src="{{ asset('images/logo-lms.png') }}" alt="Logo Kabupaten Banyuwangi"></div>
       <div class="brand-text">
         <div class="t1">Bangkom ASN</div>
         <div class="t2">Kab. Banyuwangi</div>
@@ -34,13 +36,13 @@
         <div class="nav-item" data-page="profil" data-kelompok="Manajerial">ASN Manajerial</div>
       </div>
 
-      <div class="nav-item" data-page="sertifikat">Upload Sertifikat <span class="badge" id="badge-sertifikat"></span></div>
-      <div class="nav-item" data-page="bersertifikat">Sudah Bersertifikat <span class="badge" id="badge-bersertifikat"></span></div>
+      <div class="nav-item" data-page="sertifikat">Upload Sertifikat</div>
+      <div class="nav-item" data-page="bersertifikat">Sudah Bersertifikat</div>
       <div class="nav-item" data-page="riwayat">Riwayat Kursus</div>
       <div class="nav-item" data-page="caridiklat">Cari Diklat</div>
-      <div class="nav-item" data-page="sudah">Sudah Pelatihan <span class="badge" id="badge-sudah"></span></div>
-      <div class="nav-item" data-page="belum">Belum Pelatihan <span class="badge" id="badge-belum"></span></div>
-      <div class="nav-item" data-page="rekomendasi">Rekomendasi Pelatihan <span class="badge" id="badge-rekomendasi"></span></div>
+      <div class="nav-item" data-page="sudah">Sudah Pelatihan</div>
+      <div class="nav-item" data-page="belum">Belum Pelatihan</div>
+      <div class="nav-item" data-page="rekomendasi">Rekomendasi Pelatihan</div>
 
       <div class="nav-sep"></div>
       <div class="nav-label">Rekapitulasi</div>
@@ -56,6 +58,10 @@
         <div class="sub" id="topbar-sub">Gambaran umum kondisi SDM &amp; pengembangan kompetensi</div>
       </div>
       <button class="theme-toggle" id="theme-toggle" style="margin-left:auto;">&#9789; Mode</button>
+      <form method="POST" action="{{ url('/logout') }}" style="margin-left:8px;">
+        @csrf
+        <button type="submit" class="theme-toggle">Keluar</button>
+      </form>
     </div>
 
     <!-- ============ RINGKASAN ============ -->
@@ -280,20 +286,24 @@
     <section class="page" id="page-rekomendasi">
       <div class="page-head">
         <h2>Rekomendasi Pelatihan</h2>
-        <p>Pegawai dengan <strong>latar belakang gelar bidang tertentu</strong> (IT, kesehatan, hukum, ekonomi, pendidikan, pertanian, dst) namun jabatan saat ini <strong>tidak berkaitan dengan bidang gelarnya</strong> — direkomendasikan mengikuti pelatihan penyegaran kompetensi sesuai bidang keilmuannya.</p>
+        <p>Seluruh pegawai ditampilkan lengkap dengan rekomendasi pelatihan TIK sesuai jabatannya. Klik "Pilih Pelatihan" untuk menentukan pelatihan yang mau diikuti.</p>
       </div>
       <div class="card" style="margin-bottom:18px;">
-        <h3>Rekomendasi per Bidang Gelar</h3>
-        <div class="card-sub">Jumlah pegawai direkomendasikan penyegaran, per bidang keilmuan</div>
+        <h3>Kategori Jabatan</h3>
+        <div class="card-sub">Jumlah pegawai per kategori (Sudah TIK / Rekomendasi ke TIK)</div>
         <div id="chart-rekomendasi-bidang"></div>
       </div>
       <div class="toolbar">
-        <input class="filter-input" id="rekomendasi-search" placeholder="Cari nama, NIP, atau jabatan...">
-        <select class="filter-select" id="rekomendasi-filter-bidang"><option value="">Semua Bidang</option></select>
+        <input class="filter-input" id="rekomendasi-search" placeholder="Cari nama, NIP, jabatan, atau okupasi...">
+        <select class="filter-select" id="rekomendasi-filter-bidang">
+          <option value="">Semua Kategori</option>
+          <option value="tik">Sudah TIK</option>
+          <option value="non-tik">Rekomendasi ke TIK</option>
+        </select>
       </div>
       <div class="table-wrap"><table class="data-table" id="table-rekomendasi">
         <thead><tr>
-          <th>No.</th><th>NIP</th><th>Nama</th><th>Gelar</th><th>Bidang Gelar</th><th>Jabatan Saat Ini</th><th>Satuan Kerja</th><th>Rekomendasi</th>
+          <th>No.</th><th>NIP</th><th>Nama</th><th>Jabatan Saat Ini</th><th>Satuan Kerja</th><th>Kategori</th><th>Area Fungsi</th><th>Kode Ref</th><th>Nama Okupasi</th><th>Riwayat Diklat</th><th>Pelatihan Wajib</th><th>Pelatihan</th>
         </tr></thead>
         <tbody></tbody>
       </table></div>
@@ -316,7 +326,7 @@
       </div>
       <div class="table-wrap"><table class="data-table" id="table-opd">
         <thead><tr>
-          <th>OPD</th><th>Total ASN</th><th>TIK</th><th>Non TIK</th><th>Manajerial</th><th>Belum Diklat</th>
+          <th>No.</th><th>OPD</th><th>Total ASN</th><th>TIK</th><th>Non TIK</th><th>Manajerial</th><th>Belum Diklat</th>
         </tr></thead>
         <tbody></tbody>
       </table></div>
@@ -332,7 +342,7 @@
       <div id="chart-golongan-full" class="card" style="margin-bottom:18px;"></div>
       <div class="table-wrap"><table class="data-table" id="table-golongan">
         <thead><tr>
-          <th>Golongan</th><th>Total ASN</th><th>TIK</th><th>Non TIK</th><th>Manajerial</th><th>Rata-rata JP Diklat</th>
+          <th>No.</th><th>Golongan</th><th>Total ASN</th><th>TIK</th><th>Non TIK</th><th>Manajerial</th><th>Rata-rata JP Diklat</th>
         </tr></thead>
         <tbody></tbody>
       </table></div>
@@ -362,6 +372,10 @@
       <button class="btn primary" id="upload-submit">Simpan</button>
     </div>
   </div>
+</div>
+
+<div class="modal-backdrop" id="pelatihan-modal">
+  <div class="modal modal-wide" id="pelatihan-modal-body"></div>
 </div>
 <div class="toast" id="toast"></div>
 

@@ -216,6 +216,39 @@ class PegawaiKlasifikasi
     }
 
     /**
+     * Rekomendasi pelatihan UMUM (generik) per bidang gelar -- dipakai kalau
+     * jabatan pegawai tidak menyinggung bidang gelarnya sama sekali
+     * (rekomendasiPelatihan() = true). Ini BUKAN rekomendasi rinci per
+     * okupasi/tugas (itu cuma tersedia untuk bidang TIK lewat OkupasiRekomendasi),
+     * cuma arah penyegaran kompetensi paling umum untuk bidang gelarnya.
+     */
+    public const REKOMENDASI_UMUM_PER_BIDANG = [
+        'Teknologi Informasi' => 'Pelatihan Dasar Literasi Digital & Kompetensi TIK',
+        'Kesehatan' => 'Pelatihan Penyegaran Kompetensi Bidang Kesehatan',
+        'Pendidikan' => 'Pelatihan Penyegaran Kompetensi Kependidikan',
+        'Hukum' => 'Pelatihan Penyegaran Kompetensi Hukum & Peraturan Perundang-undangan',
+        'Ekonomi/Akuntansi' => 'Pelatihan Penyegaran Kompetensi Keuangan & Akuntansi',
+        'Pertanian/Peternakan/Perikanan' => 'Pelatihan Penyegaran Kompetensi Pertanian/Peternakan/Perikanan',
+        'Psikologi' => 'Pelatihan Penyegaran Kompetensi Psikologi & Konseling',
+        'Arsitektur/Tata Ruang' => 'Pelatihan Penyegaran Kompetensi Arsitektur & Tata Ruang',
+        'Sosial & Komunikasi Publik' => 'Pelatihan Penyegaran Kompetensi Sosial & Komunikasi Publik',
+        'Administrasi Publik' => 'Pelatihan Penyegaran Kompetensi Administrasi Publik',
+    ];
+
+    /**
+     * Kalimat rekomendasi umum untuk pegawai yang jabatannya tidak sesuai
+     * bidang gelarnya. Null kalau tidak direkomendasikan (lihat rekomendasiPelatihan()).
+     */
+    public static function rekomendasiUmum(?string $bidangGelar, bool $direkomendasikan): ?string
+    {
+        if (!$direkomendasikan || !$bidangGelar) {
+            return null;
+        }
+
+        return self::REKOMENDASI_UMUM_PER_BIDANG[$bidangGelar] ?? 'Pelatihan Penyegaran Kompetensi Bidang '.$bidangGelar;
+    }
+
+    /**
      * True kalau nomor sertifikat terisi & bukan placeholder "-".
      */
     public static function sertifikatLengkap(?string $noSertifikat): bool

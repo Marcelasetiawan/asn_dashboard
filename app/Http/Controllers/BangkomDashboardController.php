@@ -7,22 +7,21 @@ use App\Services\BangkomDashboardData;
 class BangkomDashboardController extends Controller
 {
     /**
-     * GET /bangkom-asn
+     * GET / (khusus role admin -- lihat routes/web.php)
      *
-     * Menyajikan dashboard sebagai halaman Blade biasa (server-rendered),
-     * data pegawai & riwayat diklat dihitung langsung dari database lalu
-     * ditanam sebagai JSON ke dalam HTML-nya -- sama persis dengan cara
-     * kerja prototipe Dashboard_Bangkom_ASN.html sebelumnya, bedanya di sini
-     * datanya diambil dari database sungguhan (bukan file CSV yang dibekukan).
-     *
-     * resources/views/bangkom/dashboard.blade.php memakai file JS & CSS yang
-     * SAMA PERSIS dengan prototipe (public/js/bangkom-dashboard.js,
-     * public/css/bangkom-dashboard.css) -- jadi semua fitur yang sudah ada di
-     * prototipe (pencarian, filter, grafik, modal profil, dst) langsung jalan
-     * tanpa perlu ditulis ulang.
+     * Menyajikan dashboard admin sebagai halaman Blade server-rendered:
+     * data seluruh pegawai & riwayat diklat dihitung dari database lalu
+     * ditanam sebagai JSON ke dalam HTML-nya, dibaca oleh public/js/dashboard.js.
      */
     public function index()
     {
+        // Dashboard admin menanam data SELURUH pegawai + riwayat diklat
+        // (14 ribuan pegawai, puluhan ribu riwayat) sebagai satu blob JSON
+        // di HTML supaya public/js/dashboard.js bisa filter/cari secara
+        // instan di sisi client -- default memory_limit 512M PHP tidak
+        // cukup untuk membangun array itu lalu json_encode-nya sekaligus.
+        ini_set('memory_limit', '1536M');
+
         $data = BangkomDashboardData::build();
 
         // Escape "</script>" supaya string apapun di data (nama diklat, dst)
