@@ -72,8 +72,9 @@ class DashboardImportNormalizer
         $unorPath = $this->sourceDir.'/master_unor.csv';
         $referensiJabatan = [];
         $namaBergelarDariPegawais2026 = [];
+        $namaPolosDariPegawais2026 = [];
         if (is_file($pegawais2026Path) && is_file($jabfungPath) && is_file($genposPath) && is_file($unorPath)) {
-            [$referensiJabatan, $namaBergelarDariPegawais2026] = $this->readPegawais2026(
+            [$referensiJabatan, $namaBergelarDariPegawais2026, $namaPolosDariPegawais2026] = $this->readPegawais2026(
                 $pegawais2026Path, $jabfungPath, $genposPath, $unorPath
             );
         }
@@ -96,7 +97,7 @@ class DashboardImportNormalizer
         $manajerial = $this->columnValueSet($hasil->getSheetByName('asn manajerliar'), 'nip');
 
         [$pegawaiRows, $validNips] = $this->buildPegawaiRows(
-            $hasil->getSheetByName('data asn'), $levels, $tik, $manajerial, $namaBergelar, $referensiJabatan
+            $hasil->getSheetByName('data asn'), $levels, $tik, $manajerial, $namaBergelar, $referensiJabatan, $namaPolosDariPegawais2026
         );
         $this->writeCsv($this->targetDir.'/pegawai.csv', $pegawaiRows);
 
@@ -129,7 +130,7 @@ class DashboardImportNormalizer
 
         $map = [];
         foreach ($this->rowsWithHeaders($sheet) as $row) {
-            $nip = $row['NIP Baru'] ?? '';
+            $nip = $this->sanitizeNip($row['NIP Baru'] ?? '');
             $nama = $row['Nama'] ?? '';
             if ($nip !== '' && $nama !== '') {
                 $map[$nip] = $nama;
@@ -152,8 +153,10 @@ class DashboardImportNormalizer
      * ala-CSV, bukan kolom Excel biasa -- makanya dibaca cell-by-cell lalu
      * diurai manual pakai str_getcsv().
      *
-     * @return array{0: array<string, array<string, string>>, 1: array<string, string>}
-     *   [0] = referensi jabatan per NIP, [1] = nama+gelar per NIP (dari glr_dpn/glr_blk)
+     * @return array{0: array<string, array<string, string>>, 1: array<string, string>, 2: array<string, string>}
+     *   [0] = referensi jabatan per NIP, [1] = nama+gelar per NIP (dari glr_dpn/glr_blk),
+     *   [2] = nama POLOS (tanpa gelar) per NIP, dipakai sebagai cadangan terakhir
+     *   untuk 1.488 pegawai yang cuma ada di file ini (tidak ada di hasil akhir.xlsx)
      */
     private function readPegawais2026(string $path, string $jabfungPath, string $genposPath, string $unorPath): array
     {
@@ -170,6 +173,7 @@ class DashboardImportNormalizer
         $idx = [];
         $referensi = [];
         $namaBergelar = [];
+        $namaPolos = [];
 
         foreach ($sheet->getRowIterator() as $excelRow) {
             $cell = $sheet->getCell('A'.$excelRow->getRowIndex());
@@ -183,7 +187,7 @@ class DashboardImportNormalizer
                 continue;
             }
 
-            $nip = trim($fields[$idx['nip']] ?? '');
+            $nip = $this->sanitizeNip(trim($fields[$idx['nip']] ?? ''));
             if ($nip === '') {
                 continue;
             }
@@ -195,16 +199,40 @@ class DashboardImportNormalizer
             $genpos = $genposByKode[$jabstr] ?? null;
             $unorInfo = $unorByKode[$unor] ?? null;
 
+            // Kategori jabatan generik (4 nilai yang sama dipakai
+            // pegawai.jabatan / pelatihan_wajib.kategori_jabatan) --
+            // dipakai untuk mengisi 1.488 pegawai yang cuma ada di file ini
+            // (lihat buildPegawaiRows), yang aslinya kolom 'jabatan'-nya
+            // kosong total sehingga tidak pernah dapat rekomendasi/pilihan
+            // pelatihan sama sekali. jabstr "9999" = Fungsional Umum,
+            // "FT" = Fungsional Tertentu (dipetakan ke Jabatan Fungsional,
+            // dikuatkan lagi kalau jab_id juga terisi), kode lain = jabatan
+            // struktural definitif (nama posisi asli, lihat master_genpos.csv).
+            $jabatanKategori = '';
+            if ($jabId !== '') {
+                $jabatanKategori = 'Jabatan Fungsional';
+            } elseif ($jabstr === '9999') {
+                $jabatanKategori = 'Jabatan Fungsional Umum';
+            } elseif ($jabstr === 'FT') {
+                $jabatanKategori = 'Jabatan Fungsional';
+            } elseif ($jabstr !== '') {
+                $jabatanKategori = 'Jabatan Struktural';
+            }
+
             $referensi[$nip] = [
                 'jabatan_fungsional_spesifik' => $jabfung['nama_jabfung'] ?? '',
                 'kelas_jabatan_fungsional' => $jabfung['kelas_jab'] ?? '',
                 'jabatan_umum_label' => $genpos['nm_genpos'] ?? '',
                 'unor_detail' => $unorInfo['nm_unor'] ?? '',
+                'jabatan_kategori' => $jabatanKategori,
             ];
 
             $glrDepan = trim($fields[$idx['glr_dpn']] ?? '');
             $glrBelakang = trim($fields[$idx['glr_blk']] ?? '');
             $nama = trim($fields[$idx['nama']] ?? '');
+            if ($nama !== '') {
+                $namaPolos[$nip] = $nama;
+            }
             if ($nama !== '' && ($glrDepan !== '' || $glrBelakang !== '')) {
                 $namaLengkap = $glrDepan !== '' ? $glrDepan.' '.$nama : $nama;
                 if ($glrBelakang !== '') {
@@ -217,7 +245,7 @@ class DashboardImportNormalizer
         $spreadsheet->disconnectWorksheets();
         unset($spreadsheet);
 
-        return [$referensi, $namaBergelar];
+        return [$referensi, $namaBergelar, $namaPolos];
     }
 
     /**
@@ -258,15 +286,16 @@ class DashboardImportNormalizer
      * @param array<string, bool> $manajerial
      * @param array<string, string> $namaBergelar
      * @param array<string, array<string, string>> $referensiJabatan
+     * @param array<string, string> $namaPolosPegawais2026
      * @return array{0: list<array<string, string>>, 1: array<string, bool>}
      */
-    private function buildPegawaiRows(Worksheet $dataAsn, array $levels, array $tik, array $manajerial, array $namaBergelar, array $referensiJabatan = []): array
+    private function buildPegawaiRows(Worksheet $dataAsn, array $levels, array $tik, array $manajerial, array $namaBergelar, array $referensiJabatan = [], array $namaPolosPegawais2026 = []): array
     {
         $pegawaiRows = [];
         $validNips = [];
 
         foreach ($this->rowsWithHeaders($dataAsn) as $row) {
-            $nip = $row['nip_baru'] ?? '';
+            $nip = $this->sanitizeNip($row['nip_baru'] ?? '');
             if ($nip === '') {
                 continue;
             }
@@ -302,6 +331,46 @@ class DashboardImportNormalizer
                 'level_1' => $level['LEVEL 1 ASN BERSINAR'] ?? '',
                 'level_2' => $level['LEVEL 2'] ?? '',
                 'level_3' => $level['LEVEL 3'] ?? '',
+                'jabatan_fungsional_spesifik' => $referensi['jabatan_fungsional_spesifik'] ?? '',
+                'kelas_jabatan_fungsional' => $referensi['kelas_jabatan_fungsional'] ?? '',
+                'jabatan_umum_label' => $referensi['jabatan_umum_label'] ?? '',
+                'unor_detail' => $referensi['unor_detail'] ?? '',
+            ];
+        }
+
+        // pegawais_2026.xlsx (16.365 baris) punya 1.488 pegawai yang TIDAK ada
+        // di hasil akhir.xlsx!'data asn' (14.877 baris) sama sekali -- selama
+        // ini diam-diam terbuang. File itu cuma punya NIP/nama/gelar/kode
+        // jabatan mentah (tidak ada jenis kelamin, umur, golongan ruang, nama
+        // OPD, atau kategori jabatan), jadi field itu dikosongkan untuk
+        // mereka -- lebih baik pegawainya tetap tercatat (termasuk riwayat
+        // diklatnya kalau ada) daripada hilang total dari dashboard.
+        foreach ($referensiJabatan as $nip => $referensi) {
+            if (isset($validNips[$nip])) {
+                continue;
+            }
+            $validNips[$nip] = true;
+
+            $pegawaiRows[] = [
+                'nip' => $nip,
+                'nama' => $namaBergelar[$nip] ?? $namaPolosPegawais2026[$nip] ?? '',
+                'jenis_kelamin' => '',
+                'umur' => '',
+                'status' => '',
+                'golongan_ruang' => '',
+                'jabatan' => $referensi['jabatan_kategori'] ?? '',
+                'eselon' => ($referensi['jabatan_kategori'] ?? '') === 'Jabatan Struktural' ? 'Manajerial' : '',
+                'satuan_kerja' => '',
+                'kelompok_opd' => '',
+                'opd_induk' => '',
+                'unor_nama' => '',
+                'instansi_kerja' => '',
+                'alamat' => '',
+                'email' => '',
+                'kategori_asn' => 'ASN NON TIK',
+                'level_1' => '',
+                'level_2' => '',
+                'level_3' => '',
                 'jabatan_fungsional_spesifik' => $referensi['jabatan_fungsional_spesifik'] ?? '',
                 'kelas_jabatan_fungsional' => $referensi['kelas_jabatan_fungsional'] ?? '',
                 'jabatan_umum_label' => $referensi['jabatan_umum_label'] ?? '',
@@ -440,6 +509,7 @@ class DashboardImportNormalizer
         string $sumber = '',
         string $statusCrawl = '',
     ): bool {
+        $nip = $this->sanitizeNip($nip);
         if ($nip === '' || !isset($validNips[$nip]) || $nama === '') {
             return false;
         }
@@ -505,7 +575,7 @@ class DashboardImportNormalizer
     {
         $index = [];
         foreach ($this->rowsWithHeaders($sheet) as $row) {
-            $key = $row[$keyColumn] ?? '';
+            $key = $this->sanitizeNip($row[$keyColumn] ?? '');
             if ($key !== '') {
                 $index[$key] = $row;
             }
@@ -521,7 +591,7 @@ class DashboardImportNormalizer
     {
         $set = [];
         foreach ($this->rowsWithHeaders($sheet) as $row) {
-            $key = $row[$keyColumn] ?? '';
+            $key = $this->sanitizeNip($row[$keyColumn] ?? '');
             if ($key !== '') {
                 $set[$key] = true;
             }
@@ -554,6 +624,19 @@ class DashboardImportNormalizer
         }
 
         return trim((string) $value);
+    }
+
+    /**
+     * NIP harusnya cuma angka. Beberapa baris di file sumber ada karakter
+     * nyasar (mis. ":19811014200501201" -- kemungkinan salah ketik meniru
+     * trik "petik satu di depan angka" di Excel supaya tidak dibulatkan,
+     * tapi pakai titik dua). Buang semua karakter selain digit di sini
+     * supaya NIP yang tampil di dashboard maupun yang dipakai untuk
+     * mencocokkan antar file selalu bersih angka saja.
+     */
+    private function sanitizeNip(string $nip): string
+    {
+        return preg_replace('/\D+/', '', $nip) ?? '';
     }
 
     private function normaliseDate(mixed $value): string
