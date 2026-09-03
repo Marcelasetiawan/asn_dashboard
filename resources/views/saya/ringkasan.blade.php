@@ -13,6 +13,12 @@
   $selisihJp = $pegawai['total_jp'] - $rataRataJp;
 @endphp
 
+<div class="welcome-banner">
+  <div class="wb-date">{{ now()->format('l, d F Y') }}</div>
+  <h2>Selamat datang, {{ $pegawai['nama_bersih'] ?? $pegawai['nama'] }}</h2>
+  <p>{{ $pegawai['jabatan'] ?: '-' }} &middot; {{ $pegawai['satuan_kerja'] ?: '-' }}</p>
+</div>
+
 <div class="tiles">
   <div class="tile">
     <div class="label">Diklat Diikuti</div>

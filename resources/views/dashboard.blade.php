@@ -9,12 +9,6 @@
 </head>
 <body>
 
-<button class="hamburger-btn" id="hamburgerBtn" aria-label="Buka menu">
-  <svg class="ic-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
-  <svg class="ic-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 5 8 12 15 19"/></svg>
-</button>
-<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
-
 <div class="app">
 
   <aside class="sidebar" id="sidebar">
@@ -24,48 +18,81 @@
         <div class="t1">Bangkom ASN</div>
         <div class="t2">Kab. Banyuwangi</div>
       </div>
+      <button class="sidebar-toggle" aria-label="Lipat/buka menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+      </button>
     </div>
 
     <div class="nav-group">
-      <div class="nav-item active" data-page="ringkasan">Ringkasan</div>
+      <div class="nav-item active" data-page="ringkasan"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg></span>Dashboard</div>
 
-      <div class="nav-item" data-toggle-submenu="profil">Profil Pegawai</div>
+      <div class="nav-sep"></div>
+      <div class="nav-label">Manajemen ASN</div>
+      <div class="nav-item" data-toggle-submenu="profil"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M1 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M17 3.13a4 4 0 0 1 0 7.75"/><path d="M23 21v-2a4 4 0 0 0-3-3.85"/></svg></span>Profil Pegawai</div>
       <div class="submenu" id="submenu-profil">
         <div class="nav-item" data-page="profil" data-kelompok="TIK">ASN TIK</div>
         <div class="nav-item" data-page="profil" data-kelompok="Non TIK">ASN Non TIK</div>
         <div class="nav-item" data-page="profil" data-kelompok="Manajerial">ASN Manajerial</div>
       </div>
 
-      <div class="nav-item" data-page="sertifikat">Upload Sertifikat</div>
-      <div class="nav-item" data-page="bersertifikat">Sudah Bersertifikat</div>
-      <div class="nav-item" data-page="riwayat">Riwayat Kursus</div>
-      <div class="nav-item" data-page="caridiklat">Cari Diklat</div>
-      <div class="nav-item" data-page="sudah">Sudah Pelatihan</div>
-      <div class="nav-item" data-page="belum">Belum Pelatihan</div>
-      <div class="nav-item" data-page="rekomendasi">Rekomendasi Pelatihan</div>
+      <div class="nav-item" data-page="sertifikat"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>Upload Sertifikat</div>
+      <div class="nav-item" data-page="bersertifikat"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg></span>Sudah Bersertifikat</div>
+      <div class="nav-item" data-page="riwayat"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>Riwayat Kursus</div>
+      <div class="nav-item" data-page="caridiklat"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>Cari Diklat</div>
+      <div class="nav-item" data-page="sudah"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>Sudah Pelatihan</div>
+      <div class="nav-item" data-page="belum"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span>Belum Pelatihan</div>
+      <div class="nav-item" data-page="rekomendasi"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>Rekomendasi Pelatihan</div>
 
       <div class="nav-sep"></div>
       <div class="nav-label">Rekapitulasi</div>
-      <div class="nav-item" data-page="opd">ASN per OPD</div>
-      <div class="nav-item" data-page="golongan">ASN per Golongan</div>
+      <div class="nav-item" data-page="opd"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></span>ASN per OPD</div>
+      <div class="nav-item" data-page="golongan"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>ASN per Golongan</div>
+    </div>
+
+    <div class="sidebar-footer">
+      <form method="POST" action="{{ url('/logout') }}" data-logout-form>
+        @csrf
+        <button type="submit" class="nav-item logout-btn">
+          <span class="ic">&#10162;</span> Keluar
+        </button>
+      </form>
     </div>
   </aside>
 
   <main class="content">
     <div class="topbar">
+      <button class="sidebar-toggle topbar-toggle" aria-label="Buka menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+      </button>
       <div>
-        <h1 id="topbar-title">Ringkasan</h1>
+        <h1 id="topbar-title">Dashboard</h1>
         <div class="sub" id="topbar-sub">Gambaran umum kondisi SDM &amp; pengembangan kompetensi</div>
       </div>
       <button class="theme-toggle" id="theme-toggle" style="margin-left:auto;">&#9789; Mode</button>
-      <form method="POST" action="{{ url('/logout') }}" style="margin-left:8px;">
-        @csrf
-        <button type="submit" class="theme-toggle">Keluar</button>
-      </form>
+      <details class="user-badge-details">
+        <summary class="user-badge">
+          <div class="user-avatar">{{ strtoupper(substr(Auth::user()->name ?? 'A', 0, 1)) }}</div>
+          <div class="user-meta">
+            <div class="u-name">{{ Auth::user()->name ?? 'Admin' }}</div>
+            <div class="u-date">{{ now()->format('l, d F Y') }}</div>
+          </div>
+        </summary>
+        <div class="user-badge-menu">
+          <form method="POST" action="{{ url('/logout') }}" data-logout-form>
+            @csrf
+            <button type="submit">Keluar</button>
+          </form>
+        </div>
+      </details>
     </div>
 
     <!-- ============ RINGKASAN ============ -->
     <section class="page active" id="page-ringkasan">
+      <div class="welcome-banner">
+        <div class="wb-date">{{ now()->format('l, d F Y') }}</div>
+        <h2>Selamat datang, {{ Auth::user()->name ?? 'Admin' }}</h2>
+        <p>Badan Kepegawaian dan Pengembangan Sumber Daya Manusia &mdash; Kabupaten Banyuwangi</p>
+      </div>
       <div class="tiles" id="tiles-ringkasan"></div>
       <div class="grid-2">
         <div class="card">
@@ -109,6 +136,12 @@
         <input class="filter-input" id="profil-search" placeholder="Cari nama, NIP, jabatan, atau satuan kerja...">
         <select class="filter-select" id="profil-filter-opd"><option value="">Semua OPD</option></select>
         <select class="filter-select" id="profil-filter-golongan"><option value="">Semua Golongan</option></select>
+        <select class="filter-select" id="profil-limit">
+          <option value="500" selected>Tampilkan 500 baris</option>
+          <option value="1000">Tampilkan 1000 baris</option>
+          <option value="2000">Tampilkan 2000 baris</option>
+          <option value="all">Tampilkan semua</option>
+        </select>
       </div>
       <div class="table-wrap"><table class="data-table" id="table-profil">
         <thead><tr>
@@ -163,6 +196,12 @@
           <option value="Non TIK">ASN Non TIK</option>
           <option value="Manajerial">ASN Manajerial</option>
         </select>
+        <select class="filter-select" id="bersertifikat-limit">
+          <option value="500" selected>Tampilkan 500 baris</option>
+          <option value="1000">Tampilkan 1000 baris</option>
+          <option value="2000">Tampilkan 2000 baris</option>
+          <option value="all">Tampilkan semua</option>
+        </select>
       </div>
       <div class="table-wrap"><table class="data-table" id="table-bersertifikat">
         <thead><tr>
@@ -187,6 +226,12 @@
       <div class="toolbar">
         <input class="filter-input" id="riwayat-search" placeholder="Cari nama pegawai, nama diklat, atau penyelenggara...">
         <select class="filter-select" id="riwayat-filter-jenis"><option value="">Semua Jenis</option></select>
+        <select class="filter-select" id="riwayat-limit">
+          <option value="500" selected>Tampilkan 500 baris</option>
+          <option value="1000">Tampilkan 1000 baris</option>
+          <option value="2000">Tampilkan 2000 baris</option>
+          <option value="all">Tampilkan semua</option>
+        </select>
       </div>
       <div class="table-wrap"><table class="data-table" id="table-riwayat">
         <thead><tr>
@@ -242,6 +287,12 @@
           <option value="Non TIK">ASN Non TIK</option>
           <option value="Manajerial">ASN Manajerial</option>
         </select>
+        <select class="filter-select" id="sudah-limit">
+          <option value="500" selected>Tampilkan 500 baris</option>
+          <option value="1000">Tampilkan 1000 baris</option>
+          <option value="2000">Tampilkan 2000 baris</option>
+          <option value="all">Tampilkan semua</option>
+        </select>
       </div>
       <div class="table-wrap"><table class="data-table" id="table-sudah">
         <thead><tr>
@@ -271,6 +322,12 @@
           <option value="TIK">ASN TIK</option>
           <option value="Non TIK">ASN Non TIK</option>
           <option value="Manajerial">ASN Manajerial</option>
+        </select>
+        <select class="filter-select" id="belum-limit">
+          <option value="500" selected>Tampilkan 500 baris</option>
+          <option value="1000">Tampilkan 1000 baris</option>
+          <option value="2000">Tampilkan 2000 baris</option>
+          <option value="all">Tampilkan semua</option>
         </select>
       </div>
       <div class="table-wrap"><table class="data-table" id="table-belum">
@@ -376,6 +433,17 @@
 
 <div class="modal-backdrop" id="pelatihan-modal">
   <div class="modal modal-wide" id="pelatihan-modal-body"></div>
+</div>
+
+<div class="modal-backdrop" id="logout-modal">
+  <div class="modal">
+    <h3>Keluar dari akun?</h3>
+    <div class="sub">Anda perlu masuk lagi untuk mengakses dashboard ini.</div>
+    <div class="modal-actions">
+      <button type="button" class="btn" id="logout-cancel">Batal</button>
+      <button type="button" class="btn primary" id="logout-confirm" style="background:var(--status-critical);border-color:var(--status-critical);">Ya, Keluar</button>
+    </div>
+  </div>
 </div>
 <div class="toast" id="toast"></div>
 

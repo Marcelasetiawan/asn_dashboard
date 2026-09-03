@@ -11,10 +11,32 @@
     "Manajerial": "var(--series-3)"
   };
   var PILL = { "TIK": "tik", "Non TIK": "nontik", "Manajerial": "manajerial" };
+  // Palet warna bergilir untuk chart batang yang membandingkan BANYAK
+  // kategori (mis. per OPD, per golongan) -- supaya tiap batang beda warna
+  // (lebih mudah dibedakan sekilas), bukan satu warna flat semua.
+  var SERIES_CYCLE = ["var(--series-1)", "var(--series-2)", "var(--series-3)", "var(--series-4)", "var(--series-5)", "var(--series-6)", "var(--series-7)", "var(--series-8)"];
+  function seriesColor(i) { return SERIES_CYCLE[i % SERIES_CYCLE.length]; }
   // Kunci "nama_okupasi" tetap dipakai untuk kelompokkan pilihan Pelatihan
   // Wajib (Dasar/Menengah/Tinggi) di tabel pelatihan_dipilih -- beda dari
   // nama_okupasi asli (TIK) supaya tidak saling menimpa waktu disimpan.
   var WAJIB_OKUPASI_KEY = "Pelatihan Wajib";
+
+  // Tabel-tabel besar (bisa ribuan baris) dibatasi 500 baris per default
+  // biar render-nya cepat, tapi user bisa ganti sendiri lewat dropdown
+  // "Tampilkan" di tiap tabel -- termasuk pilihan "Tampilkan semua".
+  var ROW_LIMITS = { profil: 500, bersertifikat: 500, riwayat: 500, sudah: 500, belum: 500 };
+  function rowLimitText(shown, total, noun) {
+    if (total <= shown) return "Menampilkan semua " + fmtInt(total) + " " + noun;
+    return "Menampilkan " + fmtInt(shown) + " dari " + fmtInt(total) + " " + noun;
+  }
+  function wireRowLimitSelect(key, renderFn) {
+    var sel = document.getElementById(key + "-limit");
+    if (!sel) return;
+    sel.addEventListener("change", function () {
+      ROW_LIMITS[key] = sel.value === "all" ? Infinity : parseInt(sel.value, 10);
+      renderFn();
+    });
+  }
 
   // index diklat per nip
   var DIKLAT_BY_NIP = {};
@@ -162,36 +184,48 @@
   });
 
   // -------------------------------------------------------------------
-  // Hamburger menu (buka/tutup sidebar di layar sempit/HP)
+  // Tombol lipat/buka sidebar -- persisten di header sidebar (bukan cuma
+  // muncul di layar sempit), tinggal toggle class "collapsed" di sidebar.
   // -------------------------------------------------------------------
-  var hamburgerBtn = document.getElementById("hamburgerBtn");
   var sidebarEl = document.getElementById("sidebar");
-  var sidebarBackdrop = document.getElementById("sidebarBackdrop");
-  function openSidebar() {
-    sidebarEl.classList.add("open");
-    sidebarBackdrop.classList.add("show");
-    hamburgerBtn.classList.add("open");
-    hamburgerBtn.setAttribute("aria-label", "Tutup menu");
-  }
-  function closeSidebar() {
-    sidebarEl.classList.remove("open");
-    sidebarBackdrop.classList.remove("show");
-    hamburgerBtn.classList.remove("open");
-    hamburgerBtn.setAttribute("aria-label", "Buka menu");
-  }
-  if (hamburgerBtn && sidebarEl && sidebarBackdrop) {
-    hamburgerBtn.addEventListener("click", function () {
-      if (sidebarEl.classList.contains("open")) closeSidebar();
-      else openSidebar();
+  if (sidebarEl) {
+    document.querySelectorAll(".sidebar-toggle").forEach(function (btn) {
+      btn.addEventListener("click", function () { sidebarEl.classList.toggle("collapsed"); });
     });
-    sidebarBackdrop.addEventListener("click", closeSidebar);
   }
+
+  // -------------------------------------------------------------------
+  // Konfirmasi sebelum benar-benar logout -- klik "Keluar" (baik yang di
+  // sidebar maupun dropdown nama pengguna) tidak langsung submit form,
+  // tapi tampilkan modal konfirmasi dulu.
+  // -------------------------------------------------------------------
+  (function () {
+    var logoutModal = document.getElementById("logout-modal");
+    var pendingForm = null;
+    if (!logoutModal) return;
+    document.querySelectorAll("form[data-logout-form]").forEach(function (f) {
+      f.addEventListener("submit", function (e) {
+        e.preventDefault();
+        pendingForm = f;
+        logoutModal.classList.add("open");
+      });
+    });
+    document.getElementById("logout-cancel").addEventListener("click", function () {
+      logoutModal.classList.remove("open");
+    });
+    document.getElementById("logout-confirm").addEventListener("click", function () {
+      if (pendingForm) pendingForm.submit();
+    });
+    logoutModal.addEventListener("click", function (e) {
+      if (e.target === logoutModal) logoutModal.classList.remove("open");
+    });
+  })();
 
   // -------------------------------------------------------------------
   // Navigation
   // -------------------------------------------------------------------
   var pageTitles = {
-    ringkasan: ["Ringkasan", "Gambaran umum kondisi SDM & pengembangan kompetensi"],
+    ringkasan: ["Dashboard", "Gambaran umum kondisi SDM & pengembangan kompetensi"],
     profil: ["Profil Pegawai", "Data ASN per kelompok"],
     sertifikat: ["Upload Sertifikat", "Riwayat diklat yang sertifikatnya belum lengkap"],
     bersertifikat: ["Sudah Bersertifikat", "ASN yang sudah ikut pelatihan dan punya sertifikat lengkap"],
@@ -320,6 +354,25 @@
     container.innerHTML = '<div class="pie-wrap"><div class="pie-svg-holder">' + svg + center + '</div>' + legend + '</div>';
   }
 
+  // Ikon badge berwarna di pojok kanan atas tiap tile statistik (path SVG
+  // gaya Feather icons, stroke putih di atas lingkaran warna --color--).
+  var TILE_ICONS = {
+    users: '<circle cx="9" cy="7" r="4"/><path d="M1 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M17 3.13a4 4 0 0 1 0 7.75"/><path d="M23 21v-2a4 4 0 0 0-3-3.85"/>',
+    monitor: '<rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>',
+    briefcase: '<rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>',
+    grid: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>',
+    check: '<polyline points="20 6 9 17 4 12"/>',
+    alert: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+    award: '<circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>',
+    file: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>'
+  };
+  function tileIconBadge(icon, color) {
+    if (!icon || !TILE_ICONS[icon]) return "";
+    return '<div class="tile-icon" style="background:' + (color || "var(--series-1)") + '">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+      TILE_ICONS[icon] + '</svg></div>';
+  }
+
   // =====================================================================
   // RINGKASAN
   // =====================================================================
@@ -335,19 +388,20 @@
     var sertifikatKurang = DIKLAT.filter(function (d) { return !d.sertifikat_lengkap; }).length;
 
     var tiles = [
-      { label: "Total ASN Terdata", value: total, sub: "seluruh pegawai" },
-      { label: "ASN TIK", value: byKelompok["TIK"], sub: (Math.round(byKelompok["TIK"] / total * 1000) / 10) + "% dari total", color: "var(--series-1)" },
-      { label: "ASN Non TIK", value: byKelompok["Non TIK"], sub: (Math.round(byKelompok["Non TIK"] / total * 1000) / 10) + "% dari total", color: "var(--series-2)" },
-      { label: "ASN Manajerial", value: byKelompok["Manajerial"], sub: (Math.round(byKelompok["Manajerial"] / total * 1000) / 10) + "% dari total", color: "var(--series-3)" },
-      { label: "Sudah Ikut Diklat", value: sudahDiklat, sub: (Math.round(sudahDiklat / total * 1000) / 10) + "% dari total", color: "var(--status-good)" },
-      { label: "Belum Ikut Diklat", value: belumDiklat, sub: "perlu prioritas", color: "var(--status-serious)" },
-      { label: "Rekomendasi Pelatihan", value: rekomendasi, sub: "gelar tak sesuai jabatan (semua bidang)", color: "var(--status-critical)" },
-      { label: "Sertifikat Belum Lengkap", value: sertifikatKurang, sub: "dari " + DIKLAT.length + " riwayat diklat", color: "var(--status-warning)" }
+      { label: "Total ASN Terdata", value: total, sub: "seluruh pegawai", color: "var(--series-7)", icon: "users" },
+      { label: "ASN TIK", value: byKelompok["TIK"], sub: (Math.round(byKelompok["TIK"] / total * 1000) / 10) + "% dari total", color: "var(--series-1)", icon: "monitor" },
+      { label: "ASN Non TIK", value: byKelompok["Non TIK"], sub: (Math.round(byKelompok["Non TIK"] / total * 1000) / 10) + "% dari total", color: "var(--series-2)", icon: "briefcase" },
+      { label: "ASN Manajerial", value: byKelompok["Manajerial"], sub: (Math.round(byKelompok["Manajerial"] / total * 1000) / 10) + "% dari total", color: "var(--series-3)", icon: "grid" },
+      { label: "Sudah Ikut Diklat", value: sudahDiklat, sub: (Math.round(sudahDiklat / total * 1000) / 10) + "% dari total", color: "var(--status-good)", icon: "check" },
+      { label: "Belum Ikut Diklat", value: belumDiklat, sub: "perlu prioritas", color: "var(--status-serious)", icon: "alert" },
+      { label: "Rekomendasi Pelatihan", value: rekomendasi, sub: "gelar tak sesuai jabatan (semua bidang)", color: "var(--series-5)", icon: "award" },
+      { label: "Sertifikat Belum Lengkap", value: sertifikatKurang, sub: "dari " + DIKLAT.length + " riwayat diklat", color: "var(--status-warning)", icon: "file" }
     ];
     var html = "";
     tiles.forEach(function (t) {
       var pct = Math.min(100, Math.round((t.value / total) * 100));
-      html += '<div class="tile"><div class="label">' + esc(t.label) + '</div>' +
+      html += '<div class="tile">' + tileIconBadge(t.icon, t.color) +
+        '<div class="label">' + esc(t.label) + '</div>' +
         '<div class="value">' + fmtInt(t.value) + '</div>' +
         '<div class="delta">' + esc(t.sub) + '</div>' +
         '<div class="bar-mini"><div style="width:' + pct + '%;background:' + (t.color || "var(--series-1)") + '"></div></div>' +
@@ -370,8 +424,8 @@
     });
     var topOpd = Object.keys(byOpd).map(function (k) { return { label: k, value: byOpd[k] }; })
       .sort(function (a, b) { return b.value - a.value; }).slice(0, 10);
-    renderHBars(document.getElementById("chart-opd-top"), topOpd.map(function (r) {
-      return { label: r.label, value: r.value, color: "var(--series-1)" };
+    renderHBars(document.getElementById("chart-opd-top"), topOpd.map(function (r, i) {
+      return { label: r.label, value: r.value, color: seriesColor(i) };
     }));
 
     // Golongan chart
@@ -381,8 +435,8 @@
       byGol[k] = (byGol[k] || 0) + 1;
     });
     var golOrder = Object.keys(byGol).sort();
-    renderHBars(document.getElementById("chart-golongan"), golOrder.map(function (k) {
-      return { label: k, value: byGol[k], color: "var(--series-4)" };
+    renderHBars(document.getElementById("chart-golongan"), golOrder.map(function (k, i) {
+      return { label: k, value: byGol[k], color: seriesColor(i) };
     }));
 
     // Diklat status (pie -- 2 kategori, part-to-whole)
@@ -404,8 +458,8 @@
       var k = p.golongan_ruang || "Tidak Diketahui";
       byGol[k] = (byGol[k] || 0) + 1;
     });
-    var rows = Object.keys(byGol).sort().map(function (k) {
-      return { label: k, value: byGol[k], color: SERIES[currentProfilTab] || "var(--series-1)" };
+    var rows = Object.keys(byGol).sort().map(function (k, i) {
+      return { label: k, value: byGol[k], color: seriesColor(i) };
     });
     document.getElementById("profil-chart-sub").textContent =
       "Jumlah pegawai ASN " + currentProfilTab + " (" + members.length + " orang) per golongan ruang";
@@ -467,7 +521,7 @@
     if (!rows.length) {
       tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="big">&#128269;</div>Tidak ada pegawai yang cocok dengan pencarian/filter.</div></td></tr>';
     } else {
-      tbody.innerHTML = rows.slice(0, 500).map(function (p, i) {
+      tbody.innerHTML = rows.slice(0, ROW_LIMITS.profil).map(function (p, i) {
         return '<tr>' +
           '<td>' + (i + 1) + '</td>' +
           '<td>' + esc(p.nip) + '</td>' +
@@ -480,8 +534,7 @@
           '</tr>';
       }).join("");
     }
-    document.getElementById("profil-count").textContent =
-      "Menampilkan " + Math.min(rows.length, 500) + " dari " + rows.length + " pegawai" + (rows.length > 500 ? " (dibatasi 500 baris pertama, persempit pencarian untuk melihat lebih spesifik)" : "");
+    document.getElementById("profil-count").textContent = rowLimitText(Math.min(rows.length, ROW_LIMITS.profil), rows.length, "pegawai");
   }
   function initProfilPage() {
     buildProfilTabs();
@@ -492,6 +545,7 @@
     fillSelectOptions(document.getElementById("profil-filter-golongan"), gols, "Semua Golongan");
     ["profil-search"].forEach(function (id) { document.getElementById(id).addEventListener("input", renderProfilTable); });
     ["profil-filter-opd", "profil-filter-golongan"].forEach(function (id) { document.getElementById(id).addEventListener("change", renderProfilTable); });
+    wireRowLimitSelect("profil", renderProfilTable);
     renderProfilTable();
   }
 
@@ -735,7 +789,7 @@
     if (!rows.length) {
       tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="big">&#128269;</div>Tidak ada yang cocok.</div></td></tr>';
     } else {
-      tbody.innerHTML = rows.slice(0, 500).map(function (r, i) {
+      tbody.innerHTML = rows.slice(0, ROW_LIMITS.bersertifikat).map(function (r, i) {
         var p = r.p;
         return '<tr>' +
           '<td>' + (i + 1) + '</td>' +
@@ -750,7 +804,7 @@
       }).join("");
     }
     document.getElementById("bersertifikat-count").textContent =
-      "Menampilkan " + Math.min(rows.length, 500) + " dari " + rows.length + " pegawai yang sudah bersertifikat";
+      rowLimitText(Math.min(rows.length, ROW_LIMITS.bersertifikat), rows.length, "pegawai yang sudah bersertifikat");
   }
   function initBersertifikatPage() {
     renderBersertifikatTiles();
@@ -758,6 +812,7 @@
     renderBersertifikatTable();
     document.getElementById("bersertifikat-search").addEventListener("input", renderBersertifikatTable);
     document.getElementById("bersertifikat-filter-kelompok").addEventListener("change", renderBersertifikatTable);
+    wireRowLimitSelect("bersertifikat", renderBersertifikatTable);
   }
 
   // =====================================================================
@@ -782,7 +837,7 @@
       // diulang di tiap baris riwayat diklatnya -- baris-baris riwayat DIKLAT
       // (kolom nama pegawai) datanya sudah terurut per nip dari backend, jadi
       // baris-baris milik 1 pegawai yang sama pasti berurutan/tidak diselingi.
-      var limited = rows.slice(0, 500);
+      var limited = rows.slice(0, ROW_LIMITS.riwayat);
       var html = "";
       var no = 0;
       var i = 0;
@@ -794,12 +849,12 @@
           i++;
         }
         var p = PEGAWAI_BY_NIP[nip] || {};
+        no++;
         html += group.map(function (r, gi) {
           var d = r.d, idx = r.idx;
           var lengkap = d.sertifikat_lengkap || uploadedOverrides[idx];
-          no++;
           return '<tr>' +
-            '<td>' + no + '</td>' +
+            (gi === 0 ? '<td rowspan="' + group.length + '">' + no + '</td>' : '') +
             (gi === 0 ? '<td class="strong" rowspan="' + group.length + '">' + nameLink(nip, p.nama || nip) + '</td>' : '') +
             '<td>' + esc(d.jenis_sertifikasi || "-") + '</td>' +
             '<td>' + esc(d.nama_diklat) + '</td>' +
@@ -814,7 +869,7 @@
       tbody.innerHTML = html;
     }
     document.getElementById("riwayat-count").textContent =
-      "Menampilkan " + Math.min(rows.length, 500) + " dari " + rows.length + " riwayat diklat";
+      rowLimitText(Math.min(rows.length, ROW_LIMITS.riwayat), rows.length, "riwayat diklat");
   }
   function renderRiwayatChart() {
     var byJenis = {};
@@ -832,6 +887,7 @@
     fillSelectOptions(document.getElementById("riwayat-filter-jenis"), jenisList, "Semua Jenis");
     document.getElementById("riwayat-search").addEventListener("input", renderRiwayatTable);
     document.getElementById("riwayat-filter-jenis").addEventListener("change", renderRiwayatTable);
+    wireRowLimitSelect("riwayat", renderRiwayatTable);
     renderRiwayatChart();
     renderRiwayatTable();
   }
@@ -1009,8 +1065,8 @@
   }
   function renderCariDiklatChart() {
     var top = diklatGroups().sort(function (a, b) { return b.jumlah - a.jumlah; }).slice(0, 10);
-    renderHBars(document.getElementById("chart-caridiklat-top"), top.map(function (g) {
-      return { label: g.key, value: g.jumlah, color: "var(--series-1)" };
+    renderHBars(document.getElementById("chart-caridiklat-top"), top.map(function (g, i) {
+      return { label: g.key, value: g.jumlah, color: seriesColor(i) };
     }));
   }
   function initCariDiklatPage() {
@@ -1062,7 +1118,7 @@
     if (!rows.length) {
       tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><div class="big">&#128269;</div>Tidak ada yang cocok.</div></td></tr>';
     } else {
-      tbody.innerHTML = rows.slice(0, 500).map(function (p, i) {
+      tbody.innerHTML = rows.slice(0, ROW_LIMITS.sudah).map(function (p, i) {
         var kurang = p.sertifikat_kurang || 0;
         var lengkapLabel = kurang > 0
           ? '<span class="pill warn">' + (p.jumlah_diklat - kurang) + '/' + p.jumlah_diklat + '</span>'
@@ -1081,7 +1137,7 @@
       }).join("");
     }
     document.getElementById("sudah-count").textContent =
-      "Menampilkan " + Math.min(rows.length, 500) + " dari " + rows.length + " pegawai yang sudah pernah mengikuti pelatihan";
+      rowLimitText(Math.min(rows.length, ROW_LIMITS.sudah), rows.length, "pegawai yang sudah pernah mengikuti pelatihan");
   }
   function initSudahPage() {
     renderSudahTiles();
@@ -1089,6 +1145,7 @@
     renderSudahTable();
     document.getElementById("sudah-search").addEventListener("input", renderSudahTable);
     document.getElementById("sudah-filter-kelompok").addEventListener("change", renderSudahTable);
+    wireRowLimitSelect("sudah", renderSudahTable);
   }
 
   function renderBelumTable() {
@@ -1106,7 +1163,7 @@
     if (!rows.length) {
       tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="big">&#9989;</div>Tidak ada yang cocok — kemungkinan semua sudah mengikuti pelatihan.</div></td></tr>';
     } else {
-      tbody.innerHTML = rows.slice(0, 500).map(function (p, i) {
+      tbody.innerHTML = rows.slice(0, ROW_LIMITS.belum).map(function (p, i) {
         return '<tr>' +
           '<td>' + (i + 1) + '</td>' +
           '<td>' + esc(p.nip) + '</td>' +
@@ -1119,7 +1176,7 @@
       }).join("");
     }
     document.getElementById("belum-count").textContent =
-      "Menampilkan " + Math.min(rows.length, 500) + " dari " + rows.length + " pegawai yang belum pernah diklat";
+      rowLimitText(Math.min(rows.length, ROW_LIMITS.belum), rows.length, "pegawai yang belum pernah diklat");
   }
   function renderBelumTiles() {
     var belum = PEGAWAI.filter(function (p) { return !p.sudah_diklat; });
@@ -1140,6 +1197,7 @@
   function initBelumPage() {
     document.getElementById("belum-search").addEventListener("input", renderBelumTable);
     document.getElementById("belum-filter-kelompok").addEventListener("change", renderBelumTable);
+    wireRowLimitSelect("belum", renderBelumTable);
     renderBelumTiles();
     renderBelumChart();
     renderBelumTable();
@@ -1182,7 +1240,7 @@
         var dipilih = p.pelatihan_dipilih || [];
         var kategoriCell = p.jabatan_it
           ? '<span class="pill good">Sudah TIK</span>'
-          : '<span class="pill" style="background:var(--surface-2);color:var(--text-secondary);">Rekomendasi ke TIK</span>';
+          : '<span class="pill warn">Rekomendasi ke TIK</span>';
         var areaCell, kodeCell, namaOkupasiCell, pelatihanCell;
         if (p.jabatan_it && opsi) {
           // Sudah TIK: okupasi ini identitas kerjanya sekarang -- tampilkan
@@ -1581,8 +1639,8 @@
   }
   function renderOpdChart() {
     var top = opdSummary().slice().sort(function (a, b) { return b.total - a.total; }).slice(0, 10);
-    renderHBars(document.getElementById("chart-opd-top-page"), top.map(function (r) {
-      return { label: r.opd, value: r.total, color: "var(--series-1)" };
+    renderHBars(document.getElementById("chart-opd-top-page"), top.map(function (r, i) {
+      return { label: r.opd, value: r.total, color: seriesColor(i) };
     }));
   }
   function initOpdPage() {
@@ -1611,8 +1669,8 @@
     var rows = golonganSummary();
     var byKey = {};
     rows.forEach(function (r) { byKey[r.gol] = r; });
-    renderHBars(document.getElementById("chart-golongan-full"), rows.map(function (r) {
-      return { label: r.gol, value: r.total, color: "var(--series-4)" };
+    renderHBars(document.getElementById("chart-golongan-full"), rows.map(function (r, i) {
+      return { label: r.gol, value: r.total, color: seriesColor(i) };
     }));
     var tbody = document.querySelector("#table-golongan tbody");
     tbody.innerHTML = rows.map(function (r, i) {

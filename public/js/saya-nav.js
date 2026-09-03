@@ -1,33 +1,40 @@
 (function () {
   "use strict";
 
-  // Toggle sidebar di layar sempit/HP -- salinan ringan dari logika yang
-  // sama di public/js/dashboard.js (punya dashboard admin), dipisah jadi
-  // file sendiri karena halaman "Profil Saya" tidak memuat dashboard.js
-  // (yang isinya berat & khusus data seluruh pegawai).
-  var hamburgerBtn = document.getElementById("hamburgerBtn");
+  // Tombol lipat/buka sidebar -- salinan ringan dari logika yang sama di
+  // public/js/dashboard.js (punya dashboard admin), dipisah jadi file
+  // sendiri karena halaman "Profil Saya" tidak memuat dashboard.js (yang
+  // isinya berat & khusus data seluruh pegawai).
   var sidebarEl = document.getElementById("sidebar");
-  var sidebarBackdrop = document.getElementById("sidebarBackdrop");
-
-  function openSidebar() {
-    sidebarEl.classList.add("open");
-    sidebarBackdrop.classList.add("show");
-    hamburgerBtn.classList.add("open");
-    hamburgerBtn.setAttribute("aria-label", "Tutup menu");
-  }
-  function closeSidebar() {
-    sidebarEl.classList.remove("open");
-    sidebarBackdrop.classList.remove("show");
-    hamburgerBtn.classList.remove("open");
-    hamburgerBtn.setAttribute("aria-label", "Buka menu");
-  }
-  if (hamburgerBtn && sidebarEl && sidebarBackdrop) {
-    hamburgerBtn.addEventListener("click", function () {
-      if (sidebarEl.classList.contains("open")) closeSidebar();
-      else openSidebar();
+  if (sidebarEl) {
+    document.querySelectorAll(".sidebar-toggle").forEach(function (btn) {
+      btn.addEventListener("click", function () { sidebarEl.classList.toggle("collapsed"); });
     });
-    sidebarBackdrop.addEventListener("click", closeSidebar);
   }
+
+  // Konfirmasi sebelum benar-benar logout -- klik "Keluar" tidak langsung
+  // submit form, tampilkan modal konfirmasi dulu.
+  (function () {
+    var logoutModal = document.getElementById("logout-modal");
+    var pendingForm = null;
+    if (!logoutModal) return;
+    document.querySelectorAll("form[data-logout-form]").forEach(function (f) {
+      f.addEventListener("submit", function (e) {
+        e.preventDefault();
+        pendingForm = f;
+        logoutModal.classList.add("open");
+      });
+    });
+    document.getElementById("logout-cancel").addEventListener("click", function () {
+      logoutModal.classList.remove("open");
+    });
+    document.getElementById("logout-confirm").addEventListener("click", function () {
+      if (pendingForm) pendingForm.submit();
+    });
+    logoutModal.addEventListener("click", function (e) {
+      if (e.target === logoutModal) logoutModal.classList.remove("open");
+    });
+  })();
 
   function csrfToken() {
     var m = document.querySelector('meta[name="csrf-token"]');
