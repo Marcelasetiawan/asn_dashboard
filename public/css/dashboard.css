@@ -141,7 +141,14 @@
      kepanjangan (mis. submenu Profil Pegawai lagi dibuka) -- .brand
      (logo) di atas & .sidebar-footer (Keluar) di bawah TETAP di
      tempatnya, tidak ikut ke-scroll bersama daftar menunya. */
-  .nav-group { margin-bottom: 4px; display: flex; flex-direction: column; gap: 3px; flex: 1; overflow-y: auto; min-height: 0; }
+  .nav-group {
+    margin-bottom: 4px; display: flex; flex-direction: column; gap: 3px; flex: 1; overflow-y: auto; min-height: 0; overscroll-behavior: contain;
+    scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.35) transparent;
+  }
+  .nav-group::-webkit-scrollbar { width: 6px; }
+  .nav-group::-webkit-scrollbar-track { background: transparent; }
+  .nav-group::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.35); border-radius: 6px; }
+  .nav-group::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.5); }
   .nav-item {
     display: flex; align-items: center; gap: 10px;
     padding: 9px 12px; border-radius: 8px; cursor: pointer;
