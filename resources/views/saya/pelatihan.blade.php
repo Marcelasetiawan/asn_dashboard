@@ -19,7 +19,7 @@
 </div>
 
 @if ($jumlahDipilih > 0)
-  <div class="card">
+  <div class="card" style="margin-bottom:18px;">
     <div class="profile-section-title" style="margin-top:0;">Pelatihan yang Sudah Dipilih ({{ $jumlahDipilih }})</div>
     <div class="card-sub">Klik "Hapus" untuk membatalkan pilihan -- atau ubah langsung centangnya di daftar checklist di bawah.</div>
     <div class="pelatihan-checklist">
@@ -46,7 +46,7 @@
 @endif
 
 @if ($pegawai['rekomendasi_pelatihan_umum'])
-  <div class="card">
+  <div class="card" style="margin-bottom:18px;">
     <div class="profile-section-title" style="margin-top:0;">Rekomendasi Pelatihan</div>
     <div class="profile-diklat-item">
       <div class="dname">{{ $pegawai['rekomendasi_pelatihan_umum'] }}</div>

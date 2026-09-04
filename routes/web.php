@@ -18,6 +18,7 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/', [BangkomDashboardController::class, 'index'])->name('dashboard');
+    Route::post('/riwayat-diklat', [BangkomDashboardController::class, 'simpanRiwayatDiklat'])->name('riwayat-diklat.store');
 });
 
 Route::middleware(['auth', 'role:asn'])->group(function () {

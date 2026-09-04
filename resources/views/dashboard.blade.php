@@ -30,6 +30,7 @@
       <div class="nav-label">Manajemen ASN</div>
       <div class="nav-item" data-toggle-submenu="profil"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M1 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M17 3.13a4 4 0 0 1 0 7.75"/><path d="M23 21v-2a4 4 0 0 0-3-3.85"/></svg></span>Profil Pegawai</div>
       <div class="submenu" id="submenu-profil">
+        <div class="nav-item" data-page="profil" data-kelompok="Semua">ASN Semua (Gabungan)</div>
         <div class="nav-item" data-page="profil" data-kelompok="TIK">ASN TIK</div>
         <div class="nav-item" data-page="profil" data-kelompok="Non TIK">ASN Non TIK</div>
         <div class="nav-item" data-page="profil" data-kelompok="Manajerial">ASN Manajerial</div>
@@ -433,6 +434,21 @@
 
 <div class="modal-backdrop" id="pelatihan-modal">
   <div class="modal modal-wide" id="pelatihan-modal-body"></div>
+</div>
+
+<div class="modal-backdrop" id="tandai-sudah-modal">
+  <div class="modal">
+    <h3>Tandai Sudah Diikuti</h3>
+    <div class="sub" id="tandai-sudah-modal-sub"></div>
+    <label>Nomor Sertifikat (opsional)</label>
+    <input type="text" id="tandai-sudah-no-sertifikat" placeholder="Contoh: 800/1234/429.204/2026">
+    <label>Bukti/Berkas Sertifikat (PDF/JPG/PNG, opsional)</label>
+    <input type="file" id="tandai-sudah-file" accept=".pdf,.jpg,.jpeg,.png">
+    <div class="modal-actions">
+      <button class="btn" id="tandai-sudah-cancel">Batal</button>
+      <button class="btn primary" id="tandai-sudah-submit">Simpan</button>
+    </div>
+  </div>
 </div>
 
 <div class="modal-backdrop" id="logout-modal">

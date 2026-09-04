@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\RiwayatDiklat;
 use App\Services\BangkomDashboardData;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class BangkomDashboardController extends Controller
 {
@@ -33,5 +36,41 @@ class BangkomDashboardController extends Controller
         );
 
         return view('dashboard', ['dataJson' => $dataJson]);
+    }
+
+    /**
+     * POST /riwayat-diklat (khusus role admin) -- admin menandai satu
+     * Pelatihan Wajib sebagai "sudah diikuti" tanpa harus re-import file
+     * Excel: bikin baris baru di tabel riwayat_diklat untuk pegawai itu
+     * (nama_diklat harus cocok dengan nama Pelatihan Wajib supaya status
+     * "Sudah/Belum" di dashboard otomatis ke-update, lihat
+     * BangkomDashboardData::cekKemungkinanSudahDiikuti), sekalian bisa
+     * unggah bukti/berkas sertifikatnya.
+     */
+    public function simpanRiwayatDiklat(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'nip' => 'required|string|exists:pegawai,nip',
+            'nama_diklat' => 'required|string|max:255',
+            'no_sertifikat' => 'nullable|string|max:255',
+            'berkas' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+        ]);
+
+        $berkas = $request->hasFile('berkas')
+            ? $request->file('berkas')->store('sertifikat/'.$data['nip'], 'public')
+            : null;
+
+        $riwayat = RiwayatDiklat::create([
+            'nip' => $data['nip'],
+            'nama_diklat' => $data['nama_diklat'],
+            'jenis_sertifikasi' => 'Pelatihan Wajib',
+            'no_sertifikat' => $data['no_sertifikat'] ?? null,
+            'berkas_sertifikat' => $berkas,
+            'pelaksanaan' => now()->format('Y-m-d'),
+            'tahun' => now()->year,
+            'sumber' => 'input_manual_admin',
+        ]);
+
+        return response()->json(['ok' => true, 'id' => $riwayat->id]);
     }
 }

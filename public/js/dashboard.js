@@ -100,9 +100,11 @@
         terurut.map(function (w) {
           var status = w.sudah_diikuti ? '<span class="pill good">Sudah</span>' : '<span class="pill warn">Belum</span>';
           var dipilihPill = dipilihWajibNama.indexOf(w.nama_pelatihan) >= 0 ? ' <span class="pill terpilih-info">Dipilih</span>' : '';
+          var tandaiBtn = w.sudah_diikuti ? '' :
+            ' <button type="button" class="btn small" data-tandai-sudah data-nip="' + esc(nip) + '" data-nama-diklat="' + esc(w.nama_pelatihan) + '">Tandai Sudah Diikuti</button>';
           return '<div class="profile-diklat-item">' +
             '<div class="dname"><span class="pill" style="margin-right:6px;">' + esc(w.level) + '</span>' + esc(w.nama_pelatihan) + '</div>' +
-            '<div class="dmeta">' + status + dipilihPill + '</div>' +
+            '<div class="dmeta">' + status + dipilihPill + tandaiBtn + '</div>' +
             '</div>';
         }).join('');
     }
@@ -114,6 +116,7 @@
       ["Eselon", p.eselon || "- (Non Struktural)"], ["Jabatan", p.jabatan || "-"],
       ["Satuan Kerja / OPD", p.satuan_kerja || "-"], ["Pendidikan Terakhir", (p.pendidikan || "-") + (p.tahun_lulus ? " (lulus " + p.tahun_lulus + ")" : "")],
       ["Gelar Depan", p.gelar_depan || "-"], ["Gelar Belakang", p.gelar_belakang || "-"],
+      ["Email", p.email || "- (belum diisi sendiri oleh ASN)"], ["Alamat", p.alamat || "- (belum diisi sendiri oleh ASN)"],
       ["Total JP Diklat", fmtInt(p.total_jp) + " JP"], ["Sertifikat Belum Lengkap", p.sertifikat_kurang > 0 ? p.sertifikat_kurang + " riwayat" : "Tidak ada"]
     ];
     if (p.jabatan_fungsional_spesifik) kv.push(["Jabatan Fungsional Spesifik", p.jabatan_fungsional_spesifik]);
@@ -164,8 +167,64 @@
   // termasuk yang dirender belakangan (tabel yang di-render ulang saat filter berubah).
   document.body.addEventListener("click", function (e) {
     if (e.target.closest("[data-view-cert]")) return; // ditangani listener sertifikat sendiri
+    if (e.target.closest("[data-tandai-sudah]")) return; // ditangani listener tandai-sudah sendiri
     var el = e.target.closest("[data-open-profile]");
     if (el) openProfileModal(el.getAttribute("data-open-profile"));
+  });
+
+  // -------------------------------------------------------------------
+  // Tandai Pelatihan Wajib "Sudah Diikuti" (admin) -- bikin baris baru di
+  // riwayat_diklat lewat POST /riwayat-diklat, sekalian bisa unggah bukti
+  // berkas sertifikatnya. Beda dari "Upload Sertifikat" (di bawah, menu
+  // Sertifikat Kurang) yang cuma melengkapi berkas untuk riwayat diklat
+  // yang SUDAH ADA -- ini bikin riwayat diklat yang BELUM ADA, supaya
+  // status "Sudah/Belum" di daftar Pelatihan Wajib otomatis ke-update.
+  // -------------------------------------------------------------------
+  var tandaiSudahTarget = null;
+  function openTandaiSudahModal(nip, namaDiklat) {
+    tandaiSudahTarget = { nip: nip, namaDiklat: namaDiklat };
+    var p = PEGAWAI_BY_NIP[nip] || {};
+    document.getElementById("tandai-sudah-modal-sub").textContent = (p.nama || nip) + " — " + namaDiklat;
+    document.getElementById("tandai-sudah-no-sertifikat").value = "";
+    document.getElementById("tandai-sudah-file").value = "";
+    document.getElementById("tandai-sudah-modal").classList.add("open");
+  }
+  document.body.addEventListener("click", function (e) {
+    var el = e.target.closest("[data-tandai-sudah]");
+    if (el) openTandaiSudahModal(el.getAttribute("data-nip"), el.getAttribute("data-nama-diklat"));
+  });
+  document.getElementById("tandai-sudah-cancel").addEventListener("click", function () {
+    document.getElementById("tandai-sudah-modal").classList.remove("open");
+  });
+  document.getElementById("tandai-sudah-modal").addEventListener("click", function (e) {
+    if (e.target === this) this.classList.remove("open");
+  });
+  document.getElementById("tandai-sudah-submit").addEventListener("click", function () {
+    if (!tandaiSudahTarget) return;
+    var btn = this;
+    var fd = new FormData();
+    fd.append("nip", tandaiSudahTarget.nip);
+    fd.append("nama_diklat", tandaiSudahTarget.namaDiklat);
+    var noSert = document.getElementById("tandai-sudah-no-sertifikat").value.trim();
+    if (noSert) fd.append("no_sertifikat", noSert);
+    var fileEl = document.getElementById("tandai-sudah-file");
+    if (fileEl.files.length) fd.append("berkas", fileEl.files[0]);
+
+    btn.disabled = true;
+    fetch("/riwayat-diklat", {
+      method: "POST",
+      headers: { "X-CSRF-TOKEN": csrfToken(), "Accept": "application/json" },
+      body: fd
+    }).then(function (r) {
+      if (!r.ok) throw new Error("gagal simpan");
+      return r.json();
+    }).then(function () {
+      toast("Berhasil ditandai sudah diikuti. Memuat ulang halaman...");
+      setTimeout(function () { window.location.reload(); }, 700);
+    }).catch(function () {
+      btn.disabled = false;
+      toast("Gagal menyimpan. Coba lagi.");
+    });
   });
 
   // -------------------------------------------------------------------
@@ -451,8 +510,11 @@
   // PROFIL PEGAWAI
   // =====================================================================
   var currentProfilTab = "TIK";
+  function profilMembers() {
+    return currentProfilTab === "Semua" ? PEGAWAI : PEGAWAI.filter(function (p) { return p.kelompok === currentProfilTab; });
+  }
   function renderProfilChart() {
-    var members = PEGAWAI.filter(function (p) { return p.kelompok === currentProfilTab; });
+    var members = profilMembers();
     var byGol = {};
     members.forEach(function (p) {
       var k = p.golongan_ruang || "Tidak Diketahui";
@@ -461,13 +523,24 @@
     var rows = Object.keys(byGol).sort().map(function (k, i) {
       return { label: k, value: byGol[k], color: seriesColor(i) };
     });
+    var labelKelompok = currentProfilTab === "Semua" ? "Semua Kelompok" : currentProfilTab;
     document.getElementById("profil-chart-sub").textContent =
-      "Jumlah pegawai ASN " + currentProfilTab + " (" + members.length + " orang) per golongan ruang";
+      "Jumlah pegawai ASN " + labelKelompok + " (" + members.length + " orang) per golongan ruang";
     if (!rows.length) {
       document.getElementById("chart-profil-golongan").innerHTML = '<div class="mini-empty">Tidak ada data golongan.</div>';
       return;
     }
     renderHBars(document.getElementById("chart-profil-golongan"), rows);
+  }
+  // Sinkronkan sorotan menu di sidebar (submenu Profil Pegawai) dengan tab
+  // kelompok yang lagi aktif -- dipanggil baik waktu ganti tab dari DALAM
+  // halaman (klik tab di atas tabel) maupun dari sidebar, supaya dua-duanya
+  // selalu senada (sebelumnya cuma sidebar->halaman yang sinkron, bukan
+  // sebaliknya).
+  function syncSidebarKelompok(k) {
+    document.querySelectorAll('.nav-item[data-page="profil"]').forEach(function (el) {
+      el.classList.toggle("active", el.getAttribute("data-kelompok") === k);
+    });
   }
   function setProfilTab(k) {
     var changed = k !== currentProfilTab;
@@ -475,6 +548,7 @@
     document.querySelectorAll("#profil-tabs .tab-btn").forEach(function (b) {
       b.classList.toggle("active", b.getAttribute("data-k") === k);
     });
+    syncSidebarKelompok(k);
     if (changed) {
       // Reset pencarian & filter saat pindah kelompok, supaya tidak "kebawa"
       // dari kelompok sebelumnya dan bikin tabel baru terlihat kosong/salah.
@@ -488,11 +562,13 @@
   function buildProfilTabs() {
     var counts = { "TIK": 0, "Non TIK": 0, "Manajerial": 0 };
     PEGAWAI.forEach(function (p) { counts[p.kelompok]++; });
-    var order = ["TIK", "Non TIK", "Manajerial"];
+    var order = ["Semua", "TIK", "Non TIK", "Manajerial"];
+    var labels = { "Semua": "Semua (Gabungan)", "TIK": "TIK", "Non TIK": "Non TIK", "Manajerial": "Manajerial" };
     var html = "";
     order.forEach(function (k) {
+      var cnt = k === "Semua" ? PEGAWAI.length : counts[k];
       html += '<div class="tab-btn' + (k === currentProfilTab ? " active" : "") + '" data-k="' + k + '">' +
-        esc(k) + ' <span class="cnt">(' + counts[k] + ')</span></div>';
+        esc(labels[k]) + ' <span class="cnt">(' + cnt + ')</span></div>';
     });
     document.getElementById("profil-tabs").innerHTML = html;
     document.querySelectorAll("#profil-tabs .tab-btn").forEach(function (b) {
@@ -508,7 +584,7 @@
     var q = (document.getElementById("profil-search").value || "").toLowerCase().trim();
     var opd = document.getElementById("profil-filter-opd").value;
     var gol = document.getElementById("profil-filter-golongan").value;
-    var rows = PEGAWAI.filter(function (p) { return p.kelompok === currentProfilTab; });
+    var rows = profilMembers();
     if (opd) rows = rows.filter(function (p) { return p.satuan_kerja === opd; });
     if (gol) rows = rows.filter(function (p) { return p.golongan_ruang === gol; });
     if (q) rows = rows.filter(function (p) {
