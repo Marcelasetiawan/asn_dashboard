@@ -9,6 +9,7 @@
 </head>
 <body>
 
+<!-- Halo-->
 <div class="app">
 
   <aside class="sidebar" id="sidebar">

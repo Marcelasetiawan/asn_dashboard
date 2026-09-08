@@ -21,6 +21,7 @@
 
   var form = document.getElementById("pelatihan-form");
 
+  //halo
   // Kirim SEMUA checkbox yang lagi tercentang di form (baik grup TIK
   // maupun Wajib) ke server, lalu reload halaman supaya tampilan (badge
   // jumlah dipilih, daftar "Sudah Dipilih", status checkbox) sinkron

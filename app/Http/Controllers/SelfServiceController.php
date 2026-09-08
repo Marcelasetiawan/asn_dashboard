@@ -18,6 +18,7 @@ use Illuminate\View\View;
  * jadi beberapa halaman (Ringkasan/Profil/Riwayat/Pelatihan/Akun) yang
  * berbagi 1 layout sidebar (resources/views/layouts/saya.blade.php),
  * mirip strukturnya dengan dashboard admin tapi jauh lebih sederhana.
+ * ikaaaa
  */
 class SelfServiceController extends Controller
 {
