@@ -5,6 +5,7 @@
 
 @section('content')
 
+<!-- Halo-->
 <div class="card" style="margin-bottom:18px;">
   <div class="profile-section-title" style="margin-top:0;">Data Kontak</div>
   <div class="card-sub">Data resmi kepegawaian (jabatan, gelar, golongan, dll) cuma bisa diperbarui admin lewat proses impor data. Anda bisa memperbarui data kontak sendiri di bawah ini.</div>

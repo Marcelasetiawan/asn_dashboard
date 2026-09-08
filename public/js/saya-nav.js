@@ -12,6 +12,7 @@
     });
   }
 
+  //halo
   // Konfirmasi sebelum benar-benar logout -- klik "Keluar" tidak langsung
   // submit form, tampilkan modal konfirmasi dulu.
   (function () {

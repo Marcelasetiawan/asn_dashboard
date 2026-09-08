@@ -20,6 +20,7 @@
   </div>
 @endif
 
+<!-- Bagian ika-->
 <div class="toolbar">
   <input class="filter-input" id="riwayat-saya-search" placeholder="Cari nama diklat atau penyelenggara...">
 </div>
