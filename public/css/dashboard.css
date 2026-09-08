@@ -83,6 +83,7 @@
   }
   .app { display: flex; min-height: 100vh; }
 
+  /* ---------------- Sidebar bilbi---------------- */
   /* ---------------- Sidebar ---------------- */
   .sidebar {
     width: var(--sidebar-w);
