@@ -21,6 +21,7 @@
   // nama_okupasi asli (TIK) supaya tidak saling menimpa waktu disimpan.
   var WAJIB_OKUPASI_KEY = "Pelatihan Wajib";
 
+  //bilbi
   // Tabel-tabel besar (bisa ribuan baris) dibatasi 500 baris per default
   // biar render-nya cepat, tapi user bisa ganti sendiri lewat dropdown
   // "Tampilkan" di tiap tabel -- termasuk pilihan "Tampilkan semua".
