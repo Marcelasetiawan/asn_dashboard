@@ -6,6 +6,7 @@ use App\Models\RiwayatDiklat;
 use App\Services\BangkomDashboardData;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class BangkomDashboardController extends Controller
 {
@@ -72,5 +73,46 @@ class BangkomDashboardController extends Controller
         ]);
 
         return response()->json(['ok' => true, 'id' => $riwayat->id]);
+    }
+
+    /**
+     * POST /riwayat-diklat/{riwayat}/sertifikat (khusus role admin) --
+     * lengkapi/ganti nomor & berkas sertifikat untuk SATU baris riwayat
+     * diklat siapa saja (beda dari SelfServiceController::uploadSertifikat
+     * yang cuma boleh punya sendiri). Nomor sertifikat sengaja OPSIONAL --
+     * admin boleh unggah berkas duluan tanpa harus tahu/isi nomornya.
+     */
+    public function uploadSertifikat(Request $request, RiwayatDiklat $riwayat): JsonResponse
+    {
+        $data = $request->validate([
+            'no_sertifikat' => 'nullable|string|max:255',
+            'berkas' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+        ]);
+
+        if (!$request->filled('no_sertifikat') && !$request->hasFile('berkas')) {
+            return response()->json(['ok' => false, 'message' => 'Isi nomor sertifikat atau pilih berkas terlebih dahulu.'], 422);
+        }
+
+        if ($request->hasFile('berkas')) {
+            if ($riwayat->berkas_sertifikat) {
+                Storage::disk('public')->delete($riwayat->berkas_sertifikat);
+            }
+            $data['berkas_sertifikat'] = $request->file('berkas')->store('sertifikat/'.$riwayat->nip, 'public');
+        }
+
+        $riwayat->update([
+            'no_sertifikat' => $data['no_sertifikat'] ?? $riwayat->no_sertifikat,
+            'berkas_sertifikat' => $data['berkas_sertifikat'] ?? $riwayat->berkas_sertifikat,
+        ]);
+
+        // Dikembalikan lengkap (bukan cuma {ok:true}) supaya frontend bisa
+        // langsung menampilkan pratinjau berkas + data terbaru di tempat,
+        // tanpa perlu reload seluruh halaman.
+        return response()->json([
+            'ok' => true,
+            'no_sertifikat' => $riwayat->no_sertifikat,
+            'berkas_url' => $riwayat->berkas_url,
+            'sertifikat_lengkap' => $riwayat->sertifikat_lengkap,
+        ]);
     }
 }

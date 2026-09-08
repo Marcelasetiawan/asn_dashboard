@@ -170,7 +170,7 @@
       </div>
       <div class="table-wrap"><table class="data-table" id="table-sertifikat">
         <thead><tr>
-          <th>No.</th><th>Nama Pegawai</th><th>Satuan Kerja</th><th>Nama Diklat</th><th>Penyelenggara</th><th>Pelaksanaan</th><th>Status</th><th></th>
+          <th>No.</th><th>Nama Pegawai</th><th>Satuan Kerja</th><th>Status</th><th></th>
         </tr></thead>
         <tbody></tbody>
       </table></div>
@@ -417,20 +417,10 @@
   <div class="modal modal-wide" id="cert-modal-body"></div>
 </div>
 
-<div class="modal-backdrop" id="upload-modal">
-  <div class="modal">
-    <h3>Unggah Sertifikat</h3>
-    <div class="sub" id="upload-modal-sub">Lengkapi berkas sertifikat untuk riwayat diklat ini.</div>
-    <label>Nomor Sertifikat</label>
-    <input type="text" id="upload-no-sertifikat" placeholder="Contoh: 800/1234/429.204/2026">
-    <label>Berkas Sertifikat (PDF/JPG)</label>
-    <input type="file" id="upload-file">
-    <div class="modal-actions">
-      <button class="btn" id="upload-cancel">Batal</button>
-      <button class="btn primary" id="upload-submit">Simpan</button>
-    </div>
-  </div>
+<div class="modal-backdrop" id="sertifikat-pegawai-modal">
+  <div class="modal modal-wide" id="sertifikat-pegawai-modal-body"></div>
 </div>
+
 
 <div class="modal-backdrop" id="pelatihan-modal">
   <div class="modal modal-wide" id="pelatihan-modal-body"></div>
