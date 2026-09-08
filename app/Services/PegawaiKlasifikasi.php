@@ -249,11 +249,15 @@ class PegawaiKlasifikasi
     }
 
     /**
-     * True kalau nomor sertifikat terisi & bukan placeholder "-".
+     * True kalau nomor sertifikat terisi (bukan placeholder "-") DAN berkas
+     * fisiknya (hasil scan/foto) sudah diunggah -- dua-duanya harus ada,
+     * cuma nomor doang (tanpa berkas, sering begitu untuk data hasil impor
+     * lama) TIDAK dianggap lengkap supaya tetap muncul di "Sertifikat
+     * Kurang" dengan tombol unggah berkasnya.
      */
-    public static function sertifikatLengkap(?string $noSertifikat): bool
+    public static function sertifikatLengkap(?string $noSertifikat, ?string $berkasSertifikat): bool
     {
         $v = trim((string) $noSertifikat);
-        return $v !== '' && $v !== '-';
+        return $v !== '' && $v !== '-' && trim((string) $berkasSertifikat) !== '';
     }
 }

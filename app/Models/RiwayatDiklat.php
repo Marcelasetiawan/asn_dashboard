@@ -28,7 +28,7 @@ class RiwayatDiklat extends Model
     /** Pakai: $riwayat->sertifikat_lengkap -- true kalau no_sertifikat terisi & bukan "-" */
     public function getSertifikatLengkapAttribute(): bool
     {
-        return K::sertifikatLengkap($this->no_sertifikat);
+        return K::sertifikatLengkap($this->no_sertifikat, $this->berkas_sertifikat);
     }
 
     /** Pakai: $riwayat->berkas_url -- URL publik file sertifikat, null kalau belum diunggah. */

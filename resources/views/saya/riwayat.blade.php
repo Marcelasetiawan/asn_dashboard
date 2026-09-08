@@ -45,8 +45,11 @@
   <div class="table-note" id="riwayat-saya-count">Menampilkan {{ count($riwayat) }} dari {{ count($riwayat) }} riwayat.</div>
 
   @foreach ($riwayat as $d)
-    @php $gagalDiSini = old('riwayat_id') == $d['id'] && $errors->any(); @endphp
-    <div class="modal-backdrop {{ $gagalDiSini ? 'open' : '' }}" id="riwayat-modal-{{ $d['id'] }}" data-riwayat-modal>
+    @php
+      $gagalDiSini = old('riwayat_id') == $d['id'] && $errors->any();
+      $bukaModal = $gagalDiSini || (int) session('sertifikat_dibuka') === (int) $d['id'];
+    @endphp
+    <div class="modal-backdrop {{ $bukaModal ? 'open' : '' }}" id="riwayat-modal-{{ $d['id'] }}" data-riwayat-modal>
       <div class="modal modal-wide">
         <button type="button" class="profile-close" data-riwayat-close aria-label="Tutup">&times;</button>
         <h3>{{ $d['nama_diklat'] }}</h3>
