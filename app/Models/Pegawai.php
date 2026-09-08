@@ -135,7 +135,7 @@ class Pegawai extends Model
     {
         return $this->riwayatDiklat()
             ->get()
-            ->filter(fn ($d) => !PegawaiKlasifikasi::sertifikatLengkap($d->no_sertifikat))
+            ->filter(fn ($d) => !PegawaiKlasifikasi::sertifikatLengkap($d->no_sertifikat, $d->berkas_sertifikat))
             ->count();
     }
 }

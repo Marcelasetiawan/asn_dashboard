@@ -110,7 +110,12 @@ class SelfServiceController extends Controller
             'berkas_sertifikat' => $data['berkas_sertifikat'] ?? $riwayat->berkas_sertifikat,
         ]);
 
-        return back()->with('status', 'Sertifikat untuk "'.$riwayat->nama_diklat.'" berhasil disimpan.');
+        // "sertifikat_dibuka" dipakai Blade utk otomatis buka lagi modal
+        // riwayat ini setelah redirect, supaya gambar & data yg baru
+        // disimpan langsung kelihatan tanpa harus klik nama diklatnya lagi.
+        return back()
+            ->with('status', 'Sertifikat untuk "'.$riwayat->nama_diklat.'" berhasil disimpan.')
+            ->with('sertifikat_dibuka', $riwayat->id);
     }
 
     /**

@@ -131,7 +131,7 @@
     } else {
       riwayatHtml = riwayat.map(function (d) {
         var idx = DIKLAT.indexOf(d);
-        var lengkap = d.sertifikat_lengkap || uploadedOverrides[idx];
+        var lengkap = d.sertifikat_lengkap;
         var certInfo = certInfoFor(idx);
         return '<div class="profile-diklat-item">' +
           '<div class="dname">' + esc(d.nama_diklat) + '</div>' +
@@ -626,12 +626,12 @@
   }
 
   // =====================================================================
-  // UPLOAD SERTIFIKAT  (in-memory only -- no backend/persistence in prototype)
+  // UPLOAD SERTIFIKAT (POST /riwayat-diklat/{id}/sertifikat, tersimpan
+  // permanen ke server -- lihat BangkomDashboardController::uploadSertifikat)
   // =====================================================================
-  var uploadedOverrides = {}; // key: diklat index -> true once "uploaded" in this session
   function sertifikatRows() {
     return DIKLAT.map(function (d, idx) { return { d: d, idx: idx }; })
-      .filter(function (r) { return !r.d.sertifikat_lengkap && !uploadedOverrides[r.idx]; });
+      .filter(function (r) { return !r.d.sertifikat_lengkap; });
   }
   function renderSertifikatTiles() {
     var kurang = sertifikatRows().length;
@@ -653,113 +653,172 @@
       { label: "Manajerial", value: byKelompok["Manajerial"], color: SERIES["Manajerial"] }
     ], { centerLabel: "Belum Lengkap" });
   }
+  // Kelompokkan riwayat diklat yang belum lengkap per NIP -- 1 pegawai bisa
+  // punya beberapa riwayat yang belum lengkap sekaligus, jadi tabelnya
+  // ditampilkan 1 baris per PEGAWAI (bukan 1 baris per riwayat diklat lagi),
+  // detail daftar diklatnya dilihat lewat openSertifikatPegawaiModal().
+  function sertifikatByPegawai() {
+    var byNip = {};
+    sertifikatRows().forEach(function (r) {
+      var nip = r.d.nip;
+      if (!byNip[nip]) byNip[nip] = { nip: nip, items: [] };
+      byNip[nip].items.push(r);
+    });
+    return Object.keys(byNip).map(function (nip) { return byNip[nip]; });
+  }
   function renderSertifikatTable() {
     var q = (document.getElementById("sertifikat-search").value || "").toLowerCase().trim();
-    var rows = sertifikatRows();
-    if (q) rows = rows.filter(function (r) {
-      var p = PEGAWAI_BY_NIP[r.d.nip] || {};
-      return (p.nama || "").toLowerCase().indexOf(q) >= 0 || (r.d.nama_diklat || "").toLowerCase().indexOf(q) >= 0;
+    var groups = sertifikatByPegawai();
+    if (q) groups = groups.filter(function (g) {
+      var p = PEGAWAI_BY_NIP[g.nip] || {};
+      if ((p.nama || "").toLowerCase().indexOf(q) >= 0) return true;
+      return g.items.some(function (r) { return (r.d.nama_diklat || "").toLowerCase().indexOf(q) >= 0; });
+    });
+    groups.sort(function (a, b) {
+      var pa = PEGAWAI_BY_NIP[a.nip] || {}, pb = PEGAWAI_BY_NIP[b.nip] || {};
+      return (pa.nama || a.nip).localeCompare(pb.nama || b.nip);
     });
     var tbody = document.querySelector("#table-sertifikat tbody");
-    if (!rows.length) {
-      tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="big">&#9989;</div>Semua sertifikat sudah lengkap.</div></td></tr>';
+    if (!groups.length) {
+      tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><div class="big">&#9989;</div>Semua sertifikat sudah lengkap.</div></td></tr>';
     } else {
-      tbody.innerHTML = rows.map(function (r, i) {
-        var p = PEGAWAI_BY_NIP[r.d.nip] || {};
+      tbody.innerHTML = groups.map(function (g, i) {
+        var p = PEGAWAI_BY_NIP[g.nip] || {};
         return '<tr>' +
           '<td>' + (i + 1) + '</td>' +
-          '<td class="strong">' + nameLink(r.d.nip, p.nama || r.d.nip) + '</td>' +
+          '<td class="strong">' + nameLink(g.nip, p.nama || g.nip) + '</td>' +
           '<td>' + esc(p.satuan_kerja || "-") + '</td>' +
-          '<td>' + esc(r.d.nama_diklat) + '</td>' +
-          '<td>' + esc(r.d.penyelenggara || "-") + '</td>' +
-          '<td>' + esc(r.d.pelaksanaan || "-") + '</td>' +
-          '<td><span class="pill warn">Belum Lengkap</span></td>' +
-          '<td><button class="btn small primary" data-upload-idx="' + r.idx + '">Unggah</button></td>' +
+          '<td><span class="pill warn">' + g.items.length + ' diklat belum lengkap</span></td>' +
+          '<td><button class="btn small primary" data-lengkapi-nip="' + esc(g.nip) + '">Lihat &amp; Lengkapi</button></td>' +
           '</tr>';
       }).join("");
-      tbody.querySelectorAll("[data-upload-idx]").forEach(function (btn) {
-        btn.addEventListener("click", function () { openUploadModal(Number(btn.getAttribute("data-upload-idx"))); });
+      tbody.querySelectorAll("[data-lengkapi-nip]").forEach(function (btn) {
+        btn.addEventListener("click", function () { openSertifikatPegawaiModal(btn.getAttribute("data-lengkapi-nip")); });
       });
     }
-    document.getElementById("sertifikat-count").textContent = rows.length + " riwayat diklat belum memiliki sertifikat lengkap.";
+    document.getElementById("sertifikat-count").textContent = groups.length + " pegawai punya riwayat diklat yang sertifikatnya belum lengkap.";
   }
-  var uploadTargetIdx = null;
-  var uploadedFiles = {}; // idx -> { dataUrl, mime, fileName }
-  var uploadedNoSertifikat = {}; // idx -> string yang diketik user saat unggah
-  function openUploadModal(idx) {
-    uploadTargetIdx = idx;
-    var d = DIKLAT[idx];
-    var p = PEGAWAI_BY_NIP[d.nip] || {};
-    document.getElementById("upload-modal-sub").textContent = (p.nama || d.nip) + " — " + d.nama_diklat;
-    document.getElementById("upload-no-sertifikat").value = "";
-    document.getElementById("upload-file").value = "";
-    document.getElementById("upload-modal").classList.add("open");
+  // Modal detail: daftar SEMUA riwayat diklat 1 pegawai yang belum lengkap
+  // sertifikatnya. Klik nama diklatnya buat buka/tutup panel deskripsi +
+  // form unggah/ganti berkas -- disimpan permanen lewat POST
+  // /riwayat-diklat/{id}/sertifikat (nomor sertifikat sengaja opsional,
+  // admin boleh unggah berkas duluan tanpa harus isi nomornya).
+  // Pratinjau berkas sertifikat (gambar/PDF) yang ditaruh langsung di dalam
+  // panel detail, dipakai baik saat modal pertama dibuka (kalau berkasnya
+  // sudah ada dari sebelumnya) maupun sesudah unggahan baru berhasil disimpan.
+  function sertifikatPreviewHtml(berkasUrl) {
+    if (!berkasUrl) return "";
+    var isPdf = /\.pdf($|\?)/i.test(berkasUrl);
+    return '<div class="cert-preview" style="margin-bottom:10px;">' +
+      (isPdf ? '<iframe src="' + berkasUrl + '"></iframe>' : '<img src="' + berkasUrl + '" alt="Berkas sertifikat">') +
+      '</div>';
   }
-  document.getElementById("upload-cancel").addEventListener("click", function () {
-    document.getElementById("upload-modal").classList.remove("open");
-  });
-  document.getElementById("upload-modal").addEventListener("click", function (e) {
+  function openSertifikatPegawaiModal(nip) {
+    var p = PEGAWAI_BY_NIP[nip] || {};
+    var items = sertifikatRows().filter(function (r) { return r.d.nip === nip; });
+    var rowsHtml = items.map(function (r) {
+      var d = r.d;
+      return '<div class="profile-diklat-item">' +
+        '<div class="dname" data-toggle-sertifikat-detail="' + d.id + '" style="cursor:pointer;text-decoration:underline;">' + esc(d.nama_diklat) + '</div>' +
+        '<div class="dmeta">' + esc(d.jenis_sertifikasi || "-") + ' &middot; ' + esc(d.penyelenggara || "-") + ' &middot; ' + esc(d.pelaksanaan || "-") + ' &middot; ' + (d.jp || 0) + ' JP' +
+        '</div>' +
+        '<div class="sertifikat-detail" id="sertifikat-detail-' + d.id + '" style="display:none;margin-top:8px;padding:12px;border-radius:8px;background:var(--row-hover);">' +
+        '<div class="table-note" id="sertifikat-note-' + d.id + '" style="margin:0 0 10px;">Nomor sertifikat saat ini: <b>' + esc(d.no_sertifikat && d.no_sertifikat !== "-" ? d.no_sertifikat : "belum diisi") + '</b></div>' +
+        '<div id="sertifikat-preview-' + d.id + '">' + sertifikatPreviewHtml(d.berkas_url) + '</div>' +
+        '<label>Nomor Sertifikat (opsional)</label>' +
+        '<input type="text" id="sertifikat-no-' + d.id + '" placeholder="Boleh dikosongkan kalau cuma unggah berkas">' +
+        '<label>Berkas Sertifikat (PDF/JPG/PNG, opsional)</label>' +
+        '<input type="file" id="sertifikat-file-' + d.id + '" accept=".pdf,.jpg,.jpeg,.png">' +
+        '<div class="modal-actions" style="justify-content:flex-start;">' +
+        '<button type="button" class="btn small primary" data-simpan-sertifikat="' + d.id + '">Simpan</button>' +
+        '</div></div></div>';
+    }).join('');
+    document.getElementById("sertifikat-pegawai-modal-body").innerHTML =
+      '<div class="profile-head">' +
+      '<div class="profile-avatar">' + initials(p.nama) + '</div>' +
+      '<div><h3>' + esc(p.nama || nip) + '</h3><div class="role">' + esc(p.jabatan || "-") + ' &middot; ' + esc(p.satuan_kerja || "-") + '</div></div>' +
+      '<button class="profile-close" id="sertifikat-pegawai-modal-close">&times;</button>' +
+      '</div>' +
+      '<div class="profile-section-title">Diklat Belum Lengkap Sertifikatnya (' + items.length + ')</div>' +
+      rowsHtml;
+    document.getElementById("sertifikat-pegawai-modal-close").addEventListener("click", function () {
+      document.getElementById("sertifikat-pegawai-modal").classList.remove("open");
+    });
+    document.querySelectorAll("#sertifikat-pegawai-modal-body [data-toggle-sertifikat-detail]").forEach(function (el) {
+      el.addEventListener("click", function () {
+        var panel = document.getElementById("sertifikat-detail-" + el.getAttribute("data-toggle-sertifikat-detail"));
+        panel.style.display = panel.style.display === "none" ? "block" : "none";
+      });
+    });
+    document.querySelectorAll("#sertifikat-pegawai-modal-body [data-simpan-sertifikat]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var id = btn.getAttribute("data-simpan-sertifikat");
+        var noSert = document.getElementById("sertifikat-no-" + id).value.trim();
+        var fileEl = document.getElementById("sertifikat-file-" + id);
+        if (!noSert && !fileEl.files.length) {
+          toast("Isi nomor sertifikat atau pilih berkas terlebih dahulu.");
+          return;
+        }
+        var fd = new FormData();
+        if (noSert) fd.append("no_sertifikat", noSert);
+        if (fileEl.files.length) fd.append("berkas", fileEl.files[0]);
+        btn.disabled = true;
+        fetch("/riwayat-diklat/" + id + "/sertifikat", {
+          method: "POST",
+          headers: { "X-CSRF-TOKEN": csrfToken(), "Accept": "application/json" },
+          body: fd
+        }).then(function (r) {
+          if (!r.ok) throw new Error("gagal simpan");
+          return r.json();
+        }).then(function (json) {
+          // Update data di memori supaya "Lihat Sertifikat" di tabel lain
+          // (Riwayat Kursus, dst) juga langsung ikut ter-update tanpa reload.
+          var idxDiklat = DIKLAT.findIndex(function (x) { return x.id === Number(id); });
+          if (idxDiklat >= 0) {
+            DIKLAT[idxDiklat].no_sertifikat = json.no_sertifikat;
+            DIKLAT[idxDiklat].berkas_url = json.berkas_url;
+            DIKLAT[idxDiklat].sertifikat_lengkap = json.sertifikat_lengkap;
+          }
+          var noteEl = document.getElementById("sertifikat-note-" + id);
+          if (noteEl) {
+            noteEl.innerHTML = "Nomor sertifikat saat ini: <b>" +
+              esc(json.no_sertifikat && json.no_sertifikat !== "-" ? json.no_sertifikat : "belum diisi") + "</b>";
+          }
+          var previewEl = document.getElementById("sertifikat-preview-" + id);
+          if (previewEl) previewEl.innerHTML = sertifikatPreviewHtml(json.berkas_url);
+          fileEl.value = "";
+          btn.disabled = false;
+          toast("Sertifikat berhasil disimpan.");
+          // Refresh tiles/chart/tabel di belakang modal (jumlah "kurang" bisa
+          // berubah) -- baris di modal yang sedang dibuka SENGAJA tidak
+          // dihapus dari daftar supaya tidak tiba-tiba hilang di depan mata
+          // pengguna; baris itu baru hilang saat modal ini dibuka ulang.
+          renderSertifikatTiles();
+          renderSertifikatChart();
+          renderSertifikatTable();
+        }).catch(function () {
+          btn.disabled = false;
+          toast("Gagal menyimpan sertifikat. Coba lagi.");
+        });
+      });
+    });
+    document.getElementById("sertifikat-pegawai-modal").classList.add("open");
+  }
+  document.getElementById("sertifikat-pegawai-modal").addEventListener("click", function (e) {
     if (e.target === this) this.classList.remove("open");
-  });
-  function finishUpload(idx, noSert) {
-    uploadedOverrides[idx] = true;
-    if (noSert) uploadedNoSertifikat[idx] = noSert;
-    document.getElementById("upload-modal").classList.remove("open");
-    toast("Sertifikat berhasil diunggah (simulasi — sesi ini saja, belum tersimpan ke server). Bisa dilihat lagi di menu Sudah Bersertifikat / Riwayat Kursus / profil pegawai.");
-    renderSertifikatTiles();
-    renderSertifikatChart();
-    renderSertifikatTable();
-    renderBersertifikatTiles();
-    renderBersertifikatChart();
-    renderBersertifikatTable();
-    renderSudahTiles();
-    renderSudahChart();
-    renderSudahTable();
-    if (document.getElementById("page-riwayat").classList.contains("active")) { renderRiwayatChart(); renderRiwayatTable(); }
-    if (document.getElementById("page-caridiklat").classList.contains("active")) { renderCariDiklatChart(); renderCariDiklatTable(); }
-  }
-  document.getElementById("upload-submit").addEventListener("click", function () {
-    if (uploadTargetIdx === null) return;
-    var idx = uploadTargetIdx;
-    var noSert = document.getElementById("upload-no-sertifikat").value.trim();
-    var fileEl = document.getElementById("upload-file");
-    if (!noSert && !fileEl.files.length) {
-      toast("Isi nomor sertifikat atau pilih berkas terlebih dahulu.");
-      return;
-    }
-    if (fileEl.files.length) {
-      var file = fileEl.files[0];
-      var reader = new FileReader();
-      reader.onload = function () {
-        uploadedFiles[idx] = { dataUrl: reader.result, mime: file.type, fileName: file.name };
-        finishUpload(idx, noSert);
-      };
-      reader.onerror = function () {
-        toast("Gagal membaca berkas, tapi status kelengkapan tetap disimpan.");
-        finishUpload(idx, noSert);
-      };
-      reader.readAsDataURL(file);
-    } else {
-      finishUpload(idx, noSert);
-    }
   });
 
   // =====================================================================
-  // LIHAT SERTIFIKAT (viewer untuk berkas yang sudah diunggah di sesi ini,
-  // atau info nomor sertifikat untuk data lama yang sudah lengkap)
+  // LIHAT SERTIFIKAT (berkas asli dari server, lewat d.berkas_url)
   // =====================================================================
   function certInfoFor(idx) {
     var d = DIKLAT[idx];
     if (!d) return { available: false };
-    if (uploadedFiles[idx]) {
-      return {
-        available: true, hasFile: true,
-        dataUrl: uploadedFiles[idx].dataUrl, mime: uploadedFiles[idx].mime, fileName: uploadedFiles[idx].fileName,
-        noSertifikat: uploadedNoSertifikat[idx] || d.no_sertifikat || "-", source: "upload"
-      };
+    if (d.berkas_url) {
+      return { available: true, hasFile: true, url: d.berkas_url, noSertifikat: d.no_sertifikat || "-" };
     }
     if (d.sertifikat_lengkap && d.no_sertifikat && d.no_sertifikat !== "-") {
-      return { available: true, hasFile: false, noSertifikat: d.no_sertifikat, source: "existing" };
+      return { available: true, hasFile: false, noSertifikat: d.no_sertifikat };
     }
     return { available: false };
   }
@@ -780,12 +839,10 @@
       '<br><b>Penyelenggara:</b> ' + esc(d.penyelenggara || "-") + '</div>';
     var preview = "";
     if (info.hasFile) {
-      if ((info.mime || "").indexOf("pdf") >= 0) {
-        preview = '<div class="cert-preview"><iframe src="' + info.dataUrl + '"></iframe></div>';
-      } else if ((info.mime || "").indexOf("image") >= 0) {
-        preview = '<div class="cert-preview"><img src="' + info.dataUrl + '" alt="Berkas sertifikat"></div>';
+      if (/\.pdf($|\?)/i.test(info.url)) {
+        preview = '<div class="cert-preview"><iframe src="' + info.url + '"></iframe></div>';
       } else {
-        preview = '<div class="cert-empty">Berkas "' + esc(info.fileName || "") + '" berhasil diunggah, namun jenis berkas ini tidak bisa dipratinjau langsung.</div>';
+        preview = '<div class="cert-preview"><img src="' + info.url + '" alt="Berkas sertifikat"></div>';
       }
     } else {
       preview = '<div class="cert-empty">Berkas fisik sertifikat ini belum pernah diunggah ke sistem — hanya nomor sertifikatnya yang tercatat dari data awal. Gunakan menu Upload Sertifikat untuk melengkapi berkasnya.</div>';
@@ -815,21 +872,11 @@
   // sudah ikut diklat DAN punya minimal satu sertifikat lengkap)
   // =====================================================================
   function bersertifikatRows() {
-    // jumlah sertifikat lengkap = jumlah_diklat - sertifikat_kurang (dgn override sesi upload)
+    // jumlah sertifikat lengkap = jumlah_diklat - sertifikat_kurang
     return PEGAWAI.filter(function (p) {
-      var lengkapAwal = (p.jumlah_diklat || 0) - (p.sertifikat_kurang || 0);
-      var lengkapTambahan = (DIKLAT_BY_NIP[p.nip] || []).filter(function (d) {
-        var idx = DIKLAT.indexOf(d);
-        return !d.sertifikat_lengkap && uploadedOverrides[idx];
-      }).length;
-      return (lengkapAwal + lengkapTambahan) > 0;
+      return ((p.jumlah_diklat || 0) - (p.sertifikat_kurang || 0)) > 0;
     }).map(function (p) {
-      var lengkapAwal = (p.jumlah_diklat || 0) - (p.sertifikat_kurang || 0);
-      var lengkapTambahan = (DIKLAT_BY_NIP[p.nip] || []).filter(function (d) {
-        var idx = DIKLAT.indexOf(d);
-        return !d.sertifikat_lengkap && uploadedOverrides[idx];
-      }).length;
-      return { p: p, jumlahLengkap: lengkapAwal + lengkapTambahan };
+      return { p: p, jumlahLengkap: (p.jumlah_diklat || 0) - (p.sertifikat_kurang || 0) };
     });
   }
   function renderBersertifikatTiles() {
@@ -928,7 +975,7 @@
         no++;
         html += group.map(function (r, gi) {
           var d = r.d, idx = r.idx;
-          var lengkap = d.sertifikat_lengkap || uploadedOverrides[idx];
+          var lengkap = d.sertifikat_lengkap;
           return '<tr>' +
             (gi === 0 ? '<td rowspan="' + group.length + '">' + no + '</td>' : '') +
             (gi === 0 ? '<td class="strong" rowspan="' + group.length + '">' + nameLink(nip, p.nama || nip) + '</td>' : '') +
@@ -994,7 +1041,7 @@
     return Object.keys(byNama).map(function (key) {
       var g = byNama[key];
       var totalJp = g.records.reduce(function (s, d) { return s + (parseFloat(d.jp) || 0); }, 0);
-      var lengkap = g.records.filter(function (d) { return d.sertifikat_lengkap || uploadedOverrides[DIKLAT.indexOf(d)]; }).length;
+      var lengkap = g.records.filter(function (d) { return d.sertifikat_lengkap; }).length;
       return {
         key: key,
         jenis: mostCommon(g.jenisList) || "-",
@@ -1030,7 +1077,7 @@
     }
     container.innerHTML = rows.map(function (r, i) {
       var d = r.d, p = r.p;
-      var lengkap = d.sertifikat_lengkap || uploadedOverrides[r.idx];
+      var lengkap = d.sertifikat_lengkap;
       return '<div class="mini-name-row" data-open-profile="' + esc(d.nip) + '">' +
         '<span class="num">' + (i + 1) + '</span>' +
         '<span class="n">' + esc(p.nama || d.nip) + '</span>' +
@@ -1041,7 +1088,7 @@
     }).join("");
   }
   function diklatEfektifLengkap(d) {
-    return d.sertifikat_lengkap || uploadedOverrides[DIKLAT.indexOf(d)];
+    return d.sertifikat_lengkap;
   }
   var DIKLAT_QUICK_FILTERS = [
     { key: "semua", label: "Semua", test: function () { return true; } },

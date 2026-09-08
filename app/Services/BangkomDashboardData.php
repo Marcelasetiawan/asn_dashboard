@@ -151,7 +151,7 @@ class BangkomDashboardData
         foreach ($riwayatPegawai as $d) {
             $jumlahDiklat++;
             $totalJp += (int) ($d->jp ?? 0);
-            if (!PegawaiKlasifikasi::sertifikatLengkap($d->no_sertifikat)) {
+            if (!PegawaiKlasifikasi::sertifikatLengkap($d->no_sertifikat, $d->berkas_sertifikat)) {
                 $sertifikatKurang++;
             }
         }
@@ -267,7 +267,7 @@ class BangkomDashboardData
             'jp' => $d->jp !== null ? (int) $d->jp : null,
             'sumber' => $d->sumber,
             'status_crawl' => $d->status_crawl,
-            'sertifikat_lengkap' => PegawaiKlasifikasi::sertifikatLengkap($d->no_sertifikat),
+            'sertifikat_lengkap' => PegawaiKlasifikasi::sertifikatLengkap($d->no_sertifikat, $d->berkas_sertifikat),
             'berkas_url' => $d->berkas_url,
         ];
     }
