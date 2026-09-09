@@ -768,7 +768,15 @@
           headers: { "X-CSRF-TOKEN": csrfToken(), "Accept": "application/json" },
           body: fd
         }).then(function (r) {
-          if (!r.ok) throw new Error("gagal simpan");
+          if (!r.ok) {
+            // Ambil pesan error ASLI dari Laravel (validasi ukuran/format
+            // file, dst) -- supaya toast-nya tidak cuma "gagal" generik yang
+            // tidak jelas alasannya.
+            return r.json().catch(function () { return null; }).then(function (errJson) {
+              var pesanValidasi = errJson && errJson.errors ? Object.values(errJson.errors)[0][0] : null;
+              throw new Error((errJson && errJson.message) || pesanValidasi || "Gagal menyimpan sertifikat.");
+            });
+          }
           return r.json();
         }).then(function (json) {
           // Update data di memori supaya "Lihat Sertifikat" di tabel lain
@@ -796,9 +804,9 @@
           renderSertifikatTiles();
           renderSertifikatChart();
           renderSertifikatTable();
-        }).catch(function () {
+        }).catch(function (err) {
           btn.disabled = false;
-          toast("Gagal menyimpan sertifikat. Coba lagi.");
+          toast((err && err.message) || "Gagal menyimpan sertifikat. Coba lagi.");
         });
       });
     });
