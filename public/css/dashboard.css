@@ -1,89 +1,13 @@
-  :root {
-    color-scheme: light;
-    --page-plane:      #f9f9f7;
-    --surface-1:       #fcfcfb;
-    --surface-2:       #ffffff;
-    --text-primary:    #0b0b0b;
-    --text-secondary:  #52514e;
-    --text-muted:      #898781;
-    --gridline:        #e1e0d9;
-    --baseline:        #c3c2b7;
-    --border:          rgba(11,11,11,0.10);
-    --success:         #006300;
+/* ============================================================
+   dashboard.css -- Khusus dashboard admin & portal ASN ("Profil Saya").
+   Wajib link theme.css SEBELUM file ini (variabel warna, dark mode,
+   reset dasar, .btn, .theme-toggle sudah ada di sana -- tidak diulang
+   di sini). Halaman login TIDAK memuat file ini -- lihat auth.css.
+   ============================================================ */
 
-    --series-1: #2a78d6; /* blue       - TIK */
-    --series-2: #eb6834; /* orange     - Non TIK */
-    --series-3: #1baf7a; /* aqua       - Manajerial */
-    --series-4: #eda100; /* yellow     */
-    --series-5: #e87ba4; /* magenta    */
-    --series-6: #008300; /* green      */
-    --series-7: #4a3aa7; /* violet     */
-    --series-8: #e34948; /* red        */
 
-    --status-good: #0ca30c;
-    --status-warning: #fab219;
-    --status-serious: #ec835a;
-    --status-critical: #d03b3b;
-
-    --sidebar-w: 264px;
-
-    /* Panel biru untuk header atas & menu samping -- tetap biru di
-       light/dark mode (warna brand, bukan bagian dari tema terang/gelap). */
-    --brand-blue:          #1651d1;
-    --on-blue-text:        rgba(255,255,255,0.92);
-    --on-blue-text-muted:  rgba(255,255,255,0.62);
-    --on-blue-item-bg:     rgba(255,255,255,0.10);
-    --on-blue-item-hover:  rgba(255,255,255,0.18);
-    --on-blue-item-border: rgba(255,255,255,0.16);
-    --on-blue-active-bg:   #ffffff;
-    --on-blue-active-text: #1651d1;
-
-    /* Kartu (tile & panel) diberi tint biru lembut supaya beda dari
-       background halaman (--page-plane), senada dengan header/sidebar. */
-    --card-bg:     #eaf1fb;
-    --card-border: rgba(22,81,209,0.16);
-    --row-stripe:  rgba(22,81,209,0.045);
-    --row-hover:   rgba(22,81,209,0.09);
-  }
-  [data-theme="dark"] {
-    color-scheme: dark;
-    --page-plane:      #0d0d0d;
-    --surface-1:       #1a1a19;
-    --surface-2:       #202020;
-    --text-primary:    #ffffff;
-    --text-secondary:  #c3c2b7;
-    --text-muted:      #898781;
-    --gridline:        #2c2c2a;
-    --baseline:        #383835;
-    --border:          rgba(255,255,255,0.10);
-    --success:         #0ca30c;
-
-    --series-1: #3987e5;
-    --series-2: #d95926;
-    --series-3: #199e70;
-    --series-4: #c98500;
-    --series-5: #d55181;
-    --series-6: #008300;
-    --series-7: #9085e9;
-    --series-8: #e66767;
-
-    --card-bg:     #141d30;
-    --card-border: rgba(90,140,230,0.25);
-    --row-stripe:  rgba(90,140,230,0.06);
-    --row-hover:   rgba(90,140,230,0.12);
-  }
-
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; }
-  body {
-    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-    background: var(--page-plane);
-    color: var(--text-primary);
-    font-variant-numeric: proportional-nums;
-  }
   .app { display: flex; min-height: 100vh; }
 
-  /* ---------------- Sidebar bilbi---------------- */
   /* ---------------- Sidebar ---------------- */
   .sidebar {
     width: var(--sidebar-w);
@@ -229,11 +153,6 @@
   }
   .topbar h1 { font-size: 18px; margin: 0; flex-shrink: 0; color: var(--text-primary); }
   .topbar .sub { font-size: 12.5px; color: var(--text-muted); margin-top: 2px; }
-  .theme-toggle {
-    border: 1px solid var(--border); background: var(--surface-2); color: var(--text-secondary);
-    border-radius: 8px; padding: 7px 10px; cursor: pointer; font-size: 13px;
-  }
-  .theme-toggle:hover { border-color: var(--brand-blue); color: var(--brand-blue); }
 
   .page { display: none; padding: 22px 28px 60px; }
   .page.active { display: block; }
@@ -349,15 +268,6 @@
   .pill.muted { background: var(--surface-2); color: var(--text-muted); border: 1px dashed var(--border); }
   .muted-cell { color: var(--text-muted); cursor: help; }
 
-  .btn {
-    display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600;
-    padding: 7px 13px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-2);
-    color: var(--text-primary); cursor: pointer;
-  }
-  .btn.primary { background: var(--series-1); border-color: var(--series-1); color: #fff; }
-  .btn:hover { filter: brightness(0.96); }
-  .btn.primary:hover { filter: brightness(1.08); }
-  .btn.small { padding: 5px 11px; font-size: 11.5px; white-space: nowrap; border-radius: 999px; }
 
   /* Sel kolom "Pelatihan" di menu Rekomendasi Pelatihan: tombol
      Pilih/Rekomendasi TIK SELALU ada & bisa diklik kapan saja (baik untuk
@@ -496,8 +406,6 @@
   }
   .toast.show { display: block; }
 
-  ::-webkit-scrollbar { width: 9px; height: 9px; }
-  ::-webkit-scrollbar-thumb { background: var(--baseline); border-radius: 6px; }
 
   /* Tombol lipat/buka sidebar -- persisten di header sidebar (lihat
      .sidebar-toggle di atas), jadi di layar sempit sidebar-nya cukup
@@ -506,55 +414,34 @@
     .grid-2 { grid-template-columns: 1fr; }
   }
 
-  /* ---------------- Halaman Login (split layout) ---------------- */
-  .auth-page { min-height: 100vh; display: flex; background: var(--surface-1); }
+  /* ---------------- Layar sempit (HP) ----------------
+     Di bawah 640px, sidebar TIDAK mendorong konten (margin-left) lagi --
+     dia jadi overlay di atas konten dengan backdrop gelap di belakangnya,
+     dan default-nya tertutup (dikontrol dari dashboard.js lewat class
+     .collapsed saat window.innerWidth <= 640). Topbar juga disusun ulang
+     jadi 2 baris supaya judul, tombol tema, & badge user tidak berdesakan. */
+  @media (max-width: 640px) {
+    .content { margin-left: 0 !important; }
+    .sidebar { width: min(86vw, 300px); box-shadow: 0 16px 40px rgba(0,0,0,0.35); }
+    .sidebar.collapsed { width: 0; box-shadow: none; }
+    .sidebar-backdrop {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 9;
+    }
+    .sidebar-backdrop.show { display: block; }
 
-  .auth-side {
-    flex: 1.1; min-width: 0; display: flex; flex-direction: column; justify-content: space-between;
-    padding: 40px 48px; color: #fff;
-    background: linear-gradient(150deg, #030d24, var(--brand-blue) 55%, #1f6fe0);
-  }
-  .auth-side-brand { display: flex; align-items: center; gap: 12px; }
-  .auth-side-brand img { width: 40px; height: 40px; object-fit: contain; }
-  .auth-side-brand span { font-size: 16px; font-weight: 700; }
-  .auth-side-hero h1 { font-size: 30px; line-height: 1.25; margin: 0 0 14px; font-weight: 800; }
-  .auth-side-hero p { font-size: 14px; line-height: 1.6; color: rgba(255,255,255,0.78); max-width: 420px; margin: 0; }
-  .auth-side-footer { font-size: 11.5px; color: rgba(255,255,255,0.55); }
+    .topbar { flex-wrap: wrap; padding: 12px 16px; row-gap: 8px; }
+    .topbar h1 { font-size: 16px; }
+    .topbar .sub { display: none; }
+    .theme-toggle { margin-left: 0 !important; order: 3; }
+    .user-badge-details { margin-left: auto; order: 2; }
+    .user-meta { display: none; }
 
-  .auth-form-side { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-  .auth-form-topbar { display: flex; justify-content: flex-end; padding: 20px 28px 0; }
-  .auth-form-wrap { flex: 1; width: 100%; max-width: 380px; margin: 0 auto; padding: 24px 24px 40px; display: flex; flex-direction: column; justify-content: center; }
-  .auth-form-wrap h2 { font-size: 23px; margin: 0 0 6px; color: var(--text-primary); }
-  .auth-form-sub { font-size: 13px; color: var(--text-muted); margin: 0 0 22px; }
-  .auth-form-wrap label { display: block; font-size: 12px; font-weight: 600; margin: 14px 0 6px; color: var(--text-secondary); }
+    .page { padding: 16px 14px 48px; }
+    .welcome-banner { padding: 18px 18px; }
+    .toolbar { flex-direction: column; align-items: stretch; }
+    .filter-input, .filter-select { width: 100%; }
+  }
 
-  .auth-input-wrap { position: relative; display: flex; align-items: center; }
-  .auth-input-icon {
-    position: absolute; left: 12px; color: var(--text-muted); display: flex;
-    width: 16px; height: 16px; pointer-events: none;
-  }
-  .auth-input-wrap input[type=text], .auth-input-wrap input[type=password] {
-    width: 100%; padding: 10px 12px 10px 36px; border-radius: 9px; border: 1px solid var(--border);
-    background: var(--surface-2); color: var(--text-primary); font-size: 13.5px; outline: none;
-  }
-  .auth-input-wrap input:focus { border-color: var(--brand-blue); }
-  .auth-input-eye {
-    position: absolute; right: 10px; background: none; border: none; padding: 4px;
-    color: var(--text-muted); cursor: pointer; display: flex;
-  }
-  .auth-input-eye:hover { color: var(--brand-blue); }
-  .auth-input-eye svg { width: 16px; height: 16px; }
-
-  .auth-form-wrap .btn.primary { width: 100%; justify-content: center; margin-top: 22px; padding: 10px; font-size: 13.5px; }
-  .auth-error { background: color-mix(in srgb, var(--status-critical) 12%, transparent); color: var(--status-critical); border-radius: 8px; padding: 9px 12px; font-size: 12.5px; margin-top: 14px; }
-  .auth-hint { font-size: 11.5px; color: var(--text-muted); margin-top: 20px; text-align: center; line-height: 1.5; }
-
-  @media (max-width: 800px) {
-    .auth-page { flex-direction: column; }
-    .auth-side { flex: none; padding: 28px 24px; }
-    .auth-side-hero h1 { font-size: 22px; }
-    .auth-side-footer { display: none; }
-  }
 
   /* ---------------- Halaman "Profil Saya" (self-service ASN) ----------------
      Pakai layout sidebar+topbar yang sama seperti dashboard admin (lihat
@@ -575,6 +462,14 @@
     width: 100%; max-width: 360px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border);
     background: var(--surface-2); color: var(--text-primary); font-size: 12.5px;
   }
+  /* .auth-input-wrap (input password + tombol mata, dipakai di halaman Akun)
+     defaultnya melebar penuh mengikuti induknya (.card di halaman ini jauh
+     lebih lebar dari 360px) -- padahal input di dalamnya dibatasi
+     max-width:360px oleh rule di atas. Tanpa baris ini, tombol matanya
+     (position:absolute; right:10px) jadi nempel di ujung kanan CARD, bukan
+     di ujung kanan kotak inputnya. Disamakan max-width-nya di sini supaya
+     pembungkus & isinya selalu sama lebar. */
+  .page form .auth-input-wrap { max-width: 360px; }
 
   /* Form unggah sertifikat per baris riwayat (halaman "Profil Saya" ->
      Riwayat Pelatihan) -- dibungkus <details> supaya bisa dibuka/tutup

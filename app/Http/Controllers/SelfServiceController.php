@@ -9,6 +9,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 
 /**
@@ -18,7 +20,6 @@ use Illuminate\View\View;
  * jadi beberapa halaman (Ringkasan/Profil/Riwayat/Pelatihan/Akun) yang
  * berbagi 1 layout sidebar (resources/views/layouts/saya.blade.php),
  * mirip strukturnya dengan dashboard admin tapi jauh lebih sederhana.
- * ikaaaa
  */
 class SelfServiceController extends Controller
 {
@@ -61,7 +62,15 @@ class SelfServiceController extends Controller
 
     public function akun(Request $request): View
     {
-        return view('saya.akun', ['pegawai' => $this->pegawaiData($request)['pegawai']]);
+        $pegawai = $this->pegawaiData($request)['pegawai'];
+
+        return view('saya.akun', [
+            'pegawai' => $pegawai,
+            // Dipakai buat tampilkan peringatan di halaman "Ganti Password"
+            // kalau akun ini belum pernah ganti password dari default-nya
+            // (= NIP sendiri) -- supaya ASN yang belum sadar didorong ganti.
+            'pakaiPasswordDefault' => Hash::check($request->user()->nip ?? '', $request->user()->password),
+        ]);
     }
 
     /**
@@ -72,12 +81,24 @@ class SelfServiceController extends Controller
      */
     public function update(Request $request): RedirectResponse
     {
+        $nip = $request->user()->nip;
+
         $data = $request->validate([
             'alamat' => 'nullable|string|max:255',
-            'email' => 'nullable|email|max:255',
+            // unique diabaikan utk baris pegawai sendiri (kolom nip = primary
+            // key tabel pegawai) -- supaya menyimpan ulang email yg sama tidak
+            // dianggap "sudah dipakai orang lain", tapi tetap menolak kalau
+            // email itu sudah dipakai ASN lain (mencegah 2 akun kebagian
+            // notifikasi/reset yang sama).
+            'email' => ['nullable', 'email', 'max:255', Rule::unique('pegawai', 'email')->ignore($nip, 'nip')],
+        ], [
+            'email.unique' => 'Email ini sudah dipakai akun ASN lain.',
         ]);
 
-        Pegawai::where('nip', $request->user()->nip)->update($data);
+        Pegawai::where('nip', $nip)->update([
+            'alamat' => $data['alamat'] ? trim($data['alamat']) : null,
+            'email' => $data['email'] ? trim($data['email']) : null,
+        ]);
 
         return back()->with('status', 'Data kontak berhasil diperbarui.');
     }
@@ -124,14 +145,24 @@ class SelfServiceController extends Controller
      */
     public function updatePassword(Request $request): RedirectResponse
     {
+        $user = $request->user();
+
         $data = $request->validate([
             'password_lama' => 'required|string',
-            'password_baru' => 'required|string|min:6|confirmed',
+            // Kebijakan minimal: >=8 karakter + campuran huruf besar/kecil &
+            // angka (naik dari sekadar "min:6" sebelumnya -- terlalu lemah
+            // untuk akun yang password awalnya publik diketahui = NIP).
+            'password_baru' => ['required', 'string', 'confirmed', Password::min(8)->mixedCase()->numbers()],
         ]);
 
-        $user = $request->user();
         if (!Hash::check($data['password_lama'], $user->password)) {
             return back()->withErrors(['password_lama' => 'Password lama salah.']);
+        }
+
+        // Tutup celah yang sama seperti password default: jangan izinkan
+        // ASN "ganti password" tapi isinya balik lagi ke NIP sendiri.
+        if ($data['password_baru'] === ($user->nip ?? '')) {
+            return back()->withErrors(['password_baru' => 'Password baru tidak boleh sama dengan NIP Anda.']);
         }
 
         $user->update(['password' => Hash::make($data['password_baru'])]);

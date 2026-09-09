@@ -5,7 +5,6 @@
 
 @section('content')
 
-<!-- Halo-->
 <div class="card">
   <div class="profile-head">
     <div class="profile-avatar">{{ strtoupper(substr($pegawai['nama_bersih'] ?? $pegawai['nama'], 0, 1)) }}</div>

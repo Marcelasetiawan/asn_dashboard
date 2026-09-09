@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <title>Masuk — Dashboard Bangkom ASN</title>
-<link rel="stylesheet" href="{{ asset('css/dashboard.css') }}">
+<link rel="stylesheet" href="{{ asset('css/theme.css') }}">
+<link rel="stylesheet" href="{{ asset('css/auth.css') }}">
 </head>
 <body>
 
@@ -62,7 +63,7 @@
 
       <div class="auth-hint">
         ASN masuk pakai NIP sebagai username.<br>
-        Password awal = NIP Anda sendiri (bisa diganti setelah masuk).
+        Lupa/belum tahu password? Hubungi admin kepegawaian.
       </div>
     </div>
   </div>
