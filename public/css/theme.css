@@ -1,0 +1,136 @@
+/* ============================================================
+   theme.css -- Design tokens & elemen dasar BERSAMA (dipakai di
+   halaman login MAUPUN dashboard admin/portal ASN). Dipisah dari
+   dashboard.css supaya halaman login tidak perlu memuat ratusan
+   baris CSS sidebar/tabel/chart yang tidak relevan buat dia.
+   Urutan link di <head>: theme.css DULU, baru file spesifik halaman
+   (auth.css atau dashboard.css) -- supaya variabel/reset di sini
+   sudah tersedia waktu file berikutnya dibaca.
+   ============================================================ */
+
+  :root {
+    color-scheme: light;
+    --page-plane:      #f9f9f7;
+    --surface-1:       #fcfcfb;
+    --surface-2:       #ffffff;
+    --text-primary:    #0b0b0b;
+    --text-secondary:  #52514e;
+    --text-muted:      #898781;
+    --gridline:        #e1e0d9;
+    --baseline:        #c3c2b7;
+    --border:          rgba(11,11,11,0.10);
+    --success:         #006300;
+
+    --series-1: #2a78d6; /* blue       - TIK */
+    --series-2: #eb6834; /* orange     - Non TIK */
+    --series-3: #1baf7a; /* aqua       - Manajerial */
+    --series-4: #eda100; /* yellow     */
+    --series-5: #e87ba4; /* magenta    */
+    --series-6: #008300; /* green      */
+    --series-7: #4a3aa7; /* violet     */
+    --series-8: #e34948; /* red        */
+
+    --status-good: #0ca30c;
+    --status-warning: #eab308;
+    --status-serious: #ea580c;
+    --status-critical: #d03b3b;
+
+    --sidebar-w: 264px;
+
+    /* Panel biru untuk header atas & menu samping -- tetap biru di
+       light/dark mode (warna brand, bukan bagian dari tema terang/gelap). */
+    --brand-blue:          #1651d1;
+    --on-blue-text:        rgba(255,255,255,0.92);
+    --on-blue-text-muted:  rgba(255,255,255,0.62);
+    --on-blue-item-bg:     rgba(255,255,255,0.10);
+    --on-blue-item-hover:  rgba(255,255,255,0.18);
+    --on-blue-item-border: rgba(255,255,255,0.16);
+    --on-blue-active-bg:   #ffffff;
+    --on-blue-active-text: #1651d1;
+
+    /* Kartu (tile & panel) diberi tint biru lembut supaya beda dari
+       background halaman (--page-plane), senada dengan header/sidebar. */
+    --card-bg:     #eaf1fb;
+    --card-border: rgba(22,81,209,0.16);
+    --row-stripe:  rgba(22,81,209,0.045);
+    --row-hover:   rgba(22,81,209,0.09);
+  }
+
+  [data-theme="dark"] {
+    color-scheme: dark;
+    --page-plane:      #0d0d0d;
+    --surface-1:       #1a1a19;
+    --surface-2:       #202020;
+    --text-primary:    #ffffff;
+    --text-secondary:  #c3c2b7;
+    --text-muted:      #898781;
+    --gridline:        #2c2c2a;
+    --baseline:        #383835;
+    --border:          rgba(255,255,255,0.10);
+    --success:         #0ca30c;
+
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --series-5: #d55181;
+    --series-6: #008300;
+    --series-7: #9085e9;
+    --series-8: #e66767;
+
+    --card-bg:     #141d30;
+    --card-border: rgba(90,140,230,0.25);
+    --row-stripe:  rgba(90,140,230,0.06);
+    --row-hover:   rgba(90,140,230,0.12);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page-plane);
+    color: var(--text-primary);
+    font-variant-numeric: proportional-nums;
+  }
+
+  /* ---------------- Tombol dasar (dipakai di semua halaman) ---------------- */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600;
+    padding: 7px 13px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-2);
+    color: var(--text-primary); cursor: pointer;
+  }
+  .btn.primary { background: var(--series-1); border-color: var(--series-1); color: #fff; }
+  .btn:hover { filter: brightness(0.96); }
+  .btn.primary:hover { filter: brightness(1.08); }
+  .btn.small { padding: 5px 11px; font-size: 11.5px; white-space: nowrap; border-radius: 999px; }
+
+  /* ---------------- Tombol ganti tema (dipakai di topbar dashboard & halaman login) ---------------- */
+  .theme-toggle {
+    border: 1px solid var(--border); background: var(--surface-2); color: var(--text-secondary);
+    border-radius: 8px; padding: 7px 10px; cursor: pointer; font-size: 13px;
+  }
+  .theme-toggle:hover { border-color: var(--brand-blue); color: var(--brand-blue); }
+
+  /* ---------------- Input dengan ikon + tombol tampil/sembunyikan password
+     (dipakai di halaman Login DAN Pengaturan Akun -- lihat auth-input-eye
+     di public/js/saya-nav.js untuk toggle-nya di luar halaman login). ---------------- */
+  .auth-input-wrap { position: relative; display: flex; align-items: center; }
+  .auth-input-icon {
+    position: absolute; left: 12px; color: var(--text-muted); display: flex;
+    width: 16px; height: 16px; pointer-events: none;
+  }
+  .auth-input-wrap input[type=text], .auth-input-wrap input[type=password] {
+    width: 100%; padding: 10px 12px 10px 36px; border-radius: 9px; border: 1px solid var(--border);
+    background: var(--surface-2); color: var(--text-primary); font-size: 13.5px; outline: none;
+  }
+  .auth-input-wrap input:focus { border-color: var(--brand-blue); }
+  .auth-input-eye {
+    position: absolute; right: 10px; background: none; border: none; padding: 4px;
+    color: var(--text-muted); cursor: pointer; display: flex;
+  }
+  .auth-input-eye:hover { color: var(--brand-blue); }
+  .auth-input-eye svg { width: 16px; height: 16px; }
+
+  /* ---------------- Scrollbar ---------------- */
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-thumb { background: var(--baseline); border-radius: 6px; }

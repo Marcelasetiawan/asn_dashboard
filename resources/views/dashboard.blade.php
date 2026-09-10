@@ -5,11 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <title>Dashboard Bangkom ASN — Kabupaten Banyuwangi</title>
+<link rel="stylesheet" href="{{ asset('css/theme.css') }}">
 <link rel="stylesheet" href="{{ asset('css/dashboard.css') }}">
 </head>
 <body>
-<!-- bilbi-->
 <div class="app">
+
+  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
 
   <aside class="sidebar" id="sidebar">
     <div class="brand">
